@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinanzasPro AI - Simulador</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar for seamless mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .tab-content {
+            animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Custom color input styling */
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-0 sm:p-4">
+
+    <!-- Shell/Container matching smartphone dimensions but responsive -->
+    <div class="w-full max-w-md bg-slate-900 text-slate-100 min-h-screen sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[3rem] sm:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] relative flex flex-col overflow-hidden border border-slate-800">
+        
+        <!-- Smartphone Notch/Speaker bar on desktop -->
+        <div class="hidden sm:flex justify-center w-full absolute top-2 left-0 z-50">
+            <div class="w-32 h-6 bg-black rounded-full flex items-center justify-center">
+                <div class="w-12 h-1 bg-neutral-800 rounded-full"></div>
+            </div>
+        </div>
+
+        <!-- Top Status Bar -->
+        <header class="flex justify-between items-center px-6 pt-6 pb-2 text-xs font-semibold text-slate-400 z-10 select-none">
+            <span id="live-clock">12:00</span>
+            <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-signal"></i>
+                <i class="fa-solid fa-wifi"></i>
+                <i class="fa-solid fa-battery-three-quarters"></i>
+            </div>
+        </header>
+
+        <!-- Dynamic Page Header -->
+        <div class="px-6 py-2 flex justify-between items-center border-b border-slate-800/60 select-none">
+            <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <h1 id="app-title" class="text-xl font-black tracking-tight text-white">Cartera</h1>
+            </div>
+            <button onclick="window.showAIQuestion()" class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-indigo-400 hover:bg-slate-700 transition-colors">
+                <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto px-5 py-4 pb-28 no-scrollbar relative">
+
+            <!-- TAB 1: WALLET (DASHBOARD) -->
+            <section id="view-dashboard" class="tab-content space-y-6">
+                <!-- Main Balance Sheet -->
+                <div class="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-900 border border-indigo-500/20 rounded-3xl p-6 relative overflow-hidden shadow-xl shadow-indigo-950/20">
+                    <div class="absolute -right-12 -top-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                    <span class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest block mb-1">Deuda en Tarjetas</span>
+                    <h2 id="total-debt" class="text-4xl font-black text-rose-400 tracking-tight">$0.00</h2>
+                    
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button onclick="window.runAIPrediction()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-[10px] font-black uppercase text-indigo-300 tracking-wider flex items-center gap-1 transition-all">
+                            <i class="fa-solid fa-chart-line"></i> Predecir Fin de Mes ✨
+                        </button>
+                        <button onclick="window.runAISimulation()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1 transition-all">
+                            <i class="fa-solid fa-shuffle"></i> Simular Escenario ✨
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reminders section -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Próximos Recordatorios</h3>
+                        <button onclick="window.switchTab('view-settings')" class="text-xs font-bold text-indigo-400 hover:underline">Ver todos</button>
+                    </div>
+                    <div id="reminders-preview" class="space-y-2.5"></div>
+                </div>
+
+                <!-- Savings Goals section -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Metas de Ahorro</h3>
+                        <button onclick="window.openGoalPlanner()" class="text-xs font-bold text-indigo-400 hover:underline">+ Planificar Meta</button>
+                    </div>
+                    <div id="goals-list" class="space-y-2.5">
+                        <!-- Dynamic list generated in JS -->
+                    </div>
+                </div>
+
+                <!-- Active Cards section -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Mis Tarjetas</h3>
+                        <span class="text-[10px] text-slate-500">Saldo/Límite</span>
+                    </div>
+                    <div id="cards-list" class="space-y-2.5">
+                        <!-- Dynamic list generated in JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: INCOME (INGRESOS) -->
+            <section id="view-finances" class="tab-content hidden space-y-6">
+                <div class="bg-emerald-950/20 border border-emerald-500/20 rounded-3xl p-5 flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block mb-1">Ingreso Mensual Consolidado</span>
+                        <h3 id="total-income-display" class="text-3xl font-black text-emerald-400 tracking-tight">$0.00</h3>
+                    </div>
+                    <button onclick="window.openAddIncomeModal()" class="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-900 font-bold flex items-center justify-center hover:bg-emerald-400 shadow-lg shadow-emerald-500/20 transition-all">
+                        <i class="fa-solid fa-plus text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1">Fuentes Activas</h4>
+                    <div id="ingresos-list" class="space-y-2.5">
+                        <!-- Dynamic list of incomes -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: REGISTER MOVEMENT (REGISTRO) -->
+            <section id="view-add" class="tab-content hidden space-y-5">
+                <div class="bg-slate-800/40 border border-slate-800 p-6 rounded-3xl space-y-5">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Movimiento</label>
+                        <select id="type" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl font-bold text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                            <option value="gasto">💸 Registrar un Gasto</option>
+                            <option value="pago">🏦 Abonar a Tarjeta</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
+                        <select id="concept-select" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl font-bold text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                            <!-- Populated with categories -->
+                        </select>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Monto exacto ($)</label>
+                        <input type="number" id="amount" placeholder="0.00" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl font-black text-2xl text-indigo-400 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vincular a Tarjeta</label>
+                        <select id="target-card" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl font-bold text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                            <!-- Populated with credit cards -->
+                        </select>
+                    </div>
+
+                    <button onclick="window.processAction()" class="w-full py-4.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                        Guardar Movimiento
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 4: EXPENSES DETAILED (GASTOS) -->
+            <section id="view-list" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center px-1">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Topes de Categorías</h3>
+                    <button onclick="window.runAIPrediction()" class="text-xs font-bold text-indigo-400 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-robot"></i> Consejos IA
+                    </button>
+                </div>
+
+                <div id="expenses-detail" class="grid grid-cols-1 gap-3">
+                    <!-- Dynamic categories lists -->
+                </div>
+
+                <div class="pt-2 space-y-3">
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1">Historial de Transacciones</h4>
+                    <div id="movimientos-list" class="space-y-2">
+                        <!-- Recent historical items -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: SETTINGS (CONFIGURACIÓN) -->
+            <section id="view-settings" class="tab-content hidden space-y-6">
+                <!-- Reminders Section -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Recordatorios</h3>
+                        <button onclick="window.promptAddReminder()" class="text-xs font-bold text-indigo-400 hover:underline">+ Nuevo Recordatorio</button>
+                    </div>
+                    <div id="settings-reminders" class="space-y-2.5">
+                        <!-- Interactive list for editing reminders -->
+                    </div>
+                </div>
+
+                <!-- Cards Editing Section -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Editar Tarjetas</h3>
+                        <button onclick="window.promptAddCard()" class="text-xs font-bold text-indigo-400 hover:underline">+ Nueva Tarjeta</button>
+                    </div>
+                    <div id="settings-cards" class="space-y-2.5">
+                        <!-- Interactive list for editing banks -->
+                    </div>
+                </div>
+
+                <!-- Categories Editing Section -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Editar Categorías</h3>
+                        <button onclick="window.promptAddCategory()" class="text-xs font-bold text-indigo-400 hover:underline">+ Nueva Categoría</button>
+                    </div>
+                    <div id="settings-categories" class="space-y-2.5">
+                        <!-- Interactive list for editing items -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Custom Internal Popups & Modals instead of Browser Alerts -->
+        <div id="custom-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-6">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative">
+                <button onclick="window.closeModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-100 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="flex flex-col items-center text-center space-y-4">
+                    <div id="modal-icon-container" class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h3 id="modal-title" class="text-lg font-black text-white tracking-tight">Título del Modal</h3>
+                    <p id="modal-body" class="text-sm text-slate-400 leading-relaxed max-h-60 overflow-y-auto w-full no-scrollbar whitespace-pre-line"></p>
+                    <button onclick="window.closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-all">
+                        Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Prompt/Input Dialog for Dynamic Entries -->
+        <div id="prompt-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-6">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl space-y-4">
+                <h3 id="prompt-title" class="text-md font-black text-white tracking-tight">Título del Prompt</h3>
+                <div id="prompt-fields" class="space-y-3">
+                    <!-- Dynamic fields added dynamically -->
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="window.closePrompt()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-sm transition-all">
+                        Cancelar
+                    </button>
+                    <button id="prompt-confirm-btn" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-all">
+                        Aceptar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Action Button for Register view -->
+        <button onclick="window.switchTab('view-add')" class="absolute bottom-20 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl shadow-lg shadow-indigo-600/30 z-30 transition-transform hover:scale-105 active:scale-95">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <!-- Main Navigation Bar -->
+        <nav class="absolute bottom-0 left-0 right-0 h-20 bg-slate-900/90 backdrop-blur-md border-t border-slate-800/60 flex justify-around items-center px-4 z-40">
+            <button onclick="window.switchTab('view-dashboard')" data-tab="view-dashboard" class="nav-item flex flex-col items-center gap-1 text-indigo-500 transition-all">
+                <i class="fa-solid fa-wallet text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Cartera</span>
+            </button>
+            <button onclick="window.switchTab('view-finances')" data-tab="view-finances" class="nav-item flex flex-col items-center gap-1 text-slate-500 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-chart-simple text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Ingresos</span>
+            </button>
+            <!-- Blank center spacer for floating button -->
+            <div class="w-12"></div>
+            <button onclick="window.switchTab('view-list')" data-tab="view-list" class="nav-item flex flex-col items-center gap-1 text-slate-500 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-tags text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Gastos</span>
+            </button>
+            <button onclick="window.switchTab('view-settings')" data-tab="view-settings" class="nav-item flex flex-col items-center gap-1 text-slate-500 hover:text-slate-200 transition-all relative">
+                <i class="fa-solid fa-sliders text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Ajustes</span>
+                <span id="reminder-badge" class="hidden absolute -top-1 right-2 w-2 h-2 bg-rose-500 rounded-full"></span>
+            </button>
+        </nav>
+    </div>
+
+    <script type="module">
+        // Global App State
+        let state = {
+            fuentesIngreso: [
+                { id: 1, nombre: "Sueldo Principal", monto: 25000 },
+                { id: 2, nombre: "Proyecto Freelance", monto: 5000 }
+            ],
+            tarjetas: [
+                { id: 1, nombre: "Visa Principal", limite: 20000, gastado: 8500 },
+                { id: 2, nombre: "American Express", limite: 45000, gastado: 12400 }
+            ],
+            gastosFijos: [
+                { id: '1', nombre: "Comida", tope: 5000, gastado: 3200, emoji: "🌮", color: "#f59e0b" },
+                { id: '2', nombre: "Servicios", tope: 3000, gastado: 1800, emoji: "⚡", color: "#3b82f6" },
+                { id: '3', nombre: "Entretenimiento", tope: 2500, gastado: 2450, emoji: "🍿", color: "#ec4899" },
+                { id: '4', nombre: "Transporte", tope: 1500, gastado: 800, emoji: "🚗", color: "#10b981" }
+            ],
+            movimientos: [
+                { id: 1, concept: "Cena familiar", amount: 1200, type: "gasto", date: new Date().toISOString(), card: "Visa Principal", emoji: "🌮" },
+                { id: 2, concept: "Suscripción streaming", amount: 250, type: "gasto", date: new Date().toISOString(), card: "American Express", emoji: "🍿" },
+                { id: 3, concept: "Abono mensual", amount: 3000, type: "pago", date: new Date().toISOString(), card: "Visa Principal", emoji: "🏦" }
+            ],
+            metas: [
+                { id: 1, nombre: "Fondo de Emergencias", total: 15000, actual: 4500, cuota: 1500 },
+                { id: 2, nombre: "Viaje a la Playa", total: 8000, actual: 3200, cuota: 800 }
+            ],
+            recordatorios: [
+                { id: 1, tipo: 'corte', nombre: 'Visa Principal', dia: 25, monto: null, tarjetaId: 1 },
+                { id: 2, tipo: 'pago', nombre: 'Visa Principal', dia: 5, monto: 3000, tarjetaId: 1 },
+                { id: 3, tipo: 'servicio', nombre: 'Internet Claro', dia: 10, monto: 1800, tarjetaId: null }
+            ]
+        };
+
+        // UI Live Clock Simulator
+        function updateClock() {
+            const now = new Date();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('live-clock').innerText = `${hrs}:${mins}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Custom alert/confirm replacement modals
+        window.showAlert = (title, message, iconClass = "fa-solid fa-circle-info") => {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerText = message;
+            document.getElementById('modal-icon-container').innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('custom-modal').classList.remove('hidden');
+            document.getElementById('custom-modal').classList.add('flex');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('custom-modal').classList.add('hidden');
+            document.getElementById('custom-modal').classList.remove('flex');
+        };
+
+        // Custom Prompt Manager
+        let currentPromptCallback = null;
+        window.openPrompt = (title, fields, callback) => {
+            document.getElementById('prompt-title').innerText = title;
+            const container = document.getElementById('prompt-fields');
+            container.innerHTML = '';
+            
+            fields.forEach(f => {
+                const grp = document.createElement('div');
+                grp.className = "space-y-1";
+                if (f.type === 'select') {
+                    grp.innerHTML = `
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">${f.label}</label>
+                        <select id="prompt-input-${f.id}" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl font-bold text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                            ${f.options.map(o => `<option value="${o.value}" ${o.value == f.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                        </select>
+                    `;
+                } else {
+                    grp.innerHTML = `
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">${f.label}</label>
+                        <input type="${f.type}" id="prompt-input-${f.id}" value="${f.value || ''}" placeholder="${f.placeholder || ''}" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl font-bold text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    `;
+                }
+                container.appendChild(grp);
+            });
+
+            document.getElementById('prompt-modal').classList.remove('hidden');
+            document.getElementById('prompt-modal').classList.add('flex');
+            
+            currentPromptCallback = callback;
+        };
+
+        window.closePrompt = () => {
+            document.getElementById('prompt-modal').classList.add('hidden');
+            document.getElementById('prompt-modal').classList.remove('flex');
+            currentPromptCallback = null;
+        };
+
+        document.getElementById('prompt-confirm-btn').onclick = () => {
+            if (currentPromptCallback) {
+                const inputs = {};
+                const inputElements = document.querySelectorAll('[id^="prompt-input-"]');
+                inputElements.forEach(el => {
+                    const id = el.id.replace('prompt-input-', '');
+                    inputs[id] = el.value;
+                });
+                currentPromptCallback(inputs);
+            }
+            window.closePrompt();
+        };
+
+        // Navigation Manager
+        window.switchTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            
+            // Adjust title styling
+            const titleMap = {
+                'view-dashboard': 'Cartera',
+                'view-finances': 'Ingresos',
+                'view-add': 'Nuevo Registro',
+                'view-list': 'Gastos',
+                'view-settings': 'Ajustes'
+            };
+            document.getElementById('app-title').innerText = titleMap[id] || 'Cartera';
+
+            // Active Tab UI
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('text-indigo-500');
+                btn.classList.add('text-slate-500');
+                if (btn.getAttribute('data-tab') === id) {
+                    btn.classList.add('text-indigo-500');
+                    btn.classList.remove('text-slate-500');
+                }
+            });
+        };
+
+        // --- STREAMING_CHUNK: Defining action handlers... ---
+        // AI: simulated prediction model
+        window.runAIPrediction = () => {
+            const totalSpent = state.gastosFijos.reduce((s, g) => s + g.gastado, 0);
+            const totalIncome = state.fuentesIngreso.reduce((s, i) => s + i.monto, 0);
+            const projection = Math.round(totalSpent * 1.35);
+            const isExceeded = projection > totalIncome;
+            
+            const message = `✨ Predicción basada en tu consumo actual:\n\n` +
+                            `Se estima que tu gasto para fin de mes rondará los $${projection.toLocaleString()}.\n` +
+                            `${isExceeded ? '⚠️ Estás en riesgo de exceder tus ingresos mensuales. Te sugerimos recortar tus gastos de Entretenimiento de inmediato.' : '✅ Vas por excelente camino. Se proyecta un balance libre restante de $' + (totalIncome - projection).toLocaleString() + ' para ahorrar.'}`;
+            
+            window.showAlert("Planificador IA ✨", message, "fa-solid fa-robot text-emerald-400");
+        };
+
+        // AI: Ask Financial Question
+        window.showAIQuestion = () => {
+            window.openPrompt("Pregúntale a tu Asistente ✨", [
+                { id: 'question', label: 'Escribe tu consulta', type: 'text', placeholder: '¿Me alcanza para comprar un café de $350?' }
+            ], (inputs) => {
+                const question = inputs.question;
+                if (!question || question.trim() === '') return;
+                
+                // Smart automated answers based on app data context
+                const totalDebt = state.tarjetas.reduce((s, t) => s + t.gastado, 0);
+                const answer = `✨ Análisis inteligente para: "${question}"\n\n` +
+                               `Actualmente cuentas con una deuda activa consolidada de $${totalDebt.toLocaleString()}. ` +
+                               `Revisando tu disponibilidad de ingresos y topes mensuales, te sugiero priorizar el pago de tus tarjetas de crédito antes de realizar consumos extras que excedan los $500.`;
+                
+                window.showAlert("Asesor Financiero AI", answer, "fa-solid fa-brain text-indigo-400");
+            });
+        };
+
+        // AI: simulated scenario model
+        window.runAISimulation = () => {
+            window.openPrompt("Simular Escenario ✨", [
+                { id: 'scenario', label: 'Describe el escenario', type: 'text', placeholder: '¿Qué pasa si gano un 15% más?' }
+            ], (inputs) => {
+                const val = inputs.scenario;
+                if (!val) return;
+                
+                const totalIncome = state.fuentesIngreso.reduce((s, i) => s + i.monto, 0);
+                const scenarioIncome = Math.round(totalIncome * 1.15);
+                
+                const answer = `🔮 Escenario Proyectado:\n\n` +
+                               `Si tus ingresos aumentan, tu capacidad mensual pasaría de $${totalIncome.toLocaleString()} a $${scenarioIncome.toLocaleString()}.\n\n` +
+                               `Esto aceleraría el cumplimiento de tu meta "Fondo de Emergencias" en 3 meses antes de lo previsto.`;
+                
+                window.showAlert("Simulador Predictivo IA", answer, "fa-solid fa-wand-magic-sparkles text-purple-400");
+            });
+        };
+
+        // Adding Savings Goal
+        window.openGoalPlanner = () => {
+            window.openPrompt("Planificar Nueva Meta ✨", [
+                { id: 'nombre', label: 'Nombre del Objetivo', type: 'text', placeholder: 'Ej. Auto nuevo' },
+                { id: 'total', label: 'Monto Total Necesario', type: 'number', placeholder: 'Monto $' },
+                { id: 'cuota', label: 'Ahorro Mensual', type: 'number', placeholder: 'Cuota' }
+            ], (inputs) => {
+                const name = inputs.nombre;
+                const total = parseFloat(inputs.total);
+                const cuota = parseFloat(inputs.cuota);
+
+                if (name && !isNaN(total) && !isNaN(cuota)) {
+                    state.metas.push({ id: Date.now(), nombre: name, total, actual: 0, cuota });
+                    updateUI();
+                } else {
+                    window.showAlert("Error", "Por favor introduce valores numéricos correctos.", "fa-solid fa-triangle-exclamation text-rose-500");
+                }
+            });
+        };
+
+        // Goal Progress addition
+        window.addProgressToGoal = (id) => {
+            const goal = state.metas.find(m => m.id === id);
+            if (!goal) return;
+            
+            window.openPrompt(`Abonar a: ${goal.nombre}`, [
+                { id: 'monto', label: 'Cantidad a aportar ($)', type: 'number', placeholder: '0.00' }
+            ], (inputs) => {
+                const mnt = parseFloat(inputs.monto);
+                if (!isNaN(mnt) && mnt > 0) {
+                    goal.actual = Math.min(goal.actual + mnt, goal.total);
+                    updateUI();
+                }
+            });
+        };
+
+        // Manage Income
+        window.openAddIncomeModal = () => {
+            window.openPrompt("Añadir Fuente de Ingreso", [
+                { id: 'nombre', label: 'Nombre / Detalle', type: 'text', placeholder: 'Ej. Renta de local' },
+                { id: 'monto', label: 'Monto Mensual ($)', type: 'number', placeholder: '0.00' }
+            ], (inputs) => {
+                const nombre = inputs.nombre;
+                const monto = parseFloat(inputs.monto);
+                if (nombre && !isNaN(monto)) {
+                    state.fuentesIngreso.push({ id: Date.now(), nombre, monto });
+                    updateUI();
+                }
+            });
+        };
+
+        // Manage Settings - Bank Card addition
+        window.promptAddCard = () => {
+            window.openPrompt("Nueva Tarjeta", [
+                { id: 'nombre', label: 'Nombre de la Tarjeta', type: 'text', placeholder: 'Ej. Mastercard Oro' },
+                { id: 'limite', label: 'Límite de Crédito ($)', type: 'number', placeholder: '0.00' }
+            ], (inputs) => {
+                const nombre = inputs.nombre;
+                const limite = parseFloat(inputs.limite);
+                if (nombre && !isNaN(limite)) {
+                    state.tarjetas.push({ id: Date.now(), nombre, limite, gastado: 0 });
+                    updateUI();
+                }
+            });
+        };
+
+        // Manage Settings - Categories addition
+        window.promptAddCategory = () => {
+            window.openPrompt("Nueva Categoría de Gasto", [
+                { id: 'nombre', label: 'Nombre', type: 'text', placeholder: 'Ej. Gasolina' },
+                { id: 'tope', label: 'Presupuesto Límite ($)', type: 'number', placeholder: '0.00' },
+                { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '🚗' }
+            ], (inputs) => {
+                const nombre = inputs.nombre;
+                const tope = parseFloat(inputs.tope);
+                const emoji = inputs.emoji || "💰";
+                if (nombre && !isNaN(tope)) {
+                    state.gastosFijos.push({
+                        id: Date.now().toString(),
+                        nombre,
+                        tope,
+                        gastado: 0,
+                        emoji,
+                        color: "#6366f1"
+                    });
+                    updateUI();
+                }
+            });
+        };
+
+        // Reminders: date helpers
+        function nextOccurrence(dia) {
+            const now = new Date();
+            let candidate = new Date(now.getFullYear(), now.getMonth(), dia);
+            if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                candidate = new Date(now.getFullYear(), now.getMonth() + 1, dia);
+            }
+            return candidate;
+        }
+        function daysUntil(dia) {
+            const now = new Date(); now.setHours(0,0,0,0);
+            const target = nextOccurrence(dia);
+            return Math.round((target - now) / 86400000);
+        }
+        function tipoLabel(tipo) {
+            if (tipo === 'corte') return 'Corte de tarjeta';
+            if (tipo === 'pago') return 'Pago de tarjeta';
+            return 'Servicio';
+        }
+        function tipoIcon(tipo) {
+            if (tipo === 'corte') return 'fa-scissors';
+            if (tipo === 'pago') return 'fa-credit-card';
+            return 'fa-file-invoice-dollar';
+        }
+
+        // Reminders: add new
+        window.promptAddReminder = () => {
+            window.openPrompt("Nuevo Recordatorio", [
+                { id: 'tipo', label: 'Tipo', type: 'select', value: 'servicio', options: [
+                    { value: 'corte', label: 'Corte de tarjeta' },
+                    { value: 'pago', label: 'Pago de tarjeta' },
+                    { value: 'servicio', label: 'Servicio (luz, internet, etc.)' }
+                ]},
+                { id: 'nombre', label: 'Nombre', type: 'text', placeholder: 'Ej. Internet Claro' },
+                { id: 'dia', label: 'Día del mes (1-31)', type: 'number', placeholder: '15' },
+                { id: 'monto', label: 'Monto aproximado ($) - opcional', type: 'number', placeholder: '0.00' }
+            ], (inputs) => {
+                const tipo = inputs.tipo;
+                const nombre = inputs.nombre;
+                const dia = parseInt(inputs.dia);
+                const monto = inputs.monto ? parseFloat(inputs.monto) : null;
+                if (nombre && dia >= 1 && dia <= 31) {
+                    state.recordatorios.push({ id: Date.now(), tipo, nombre, dia, monto, tarjetaId: null });
+                    updateUI();
+                } else {
+                    window.showAlert("Error", "Ingresa un nombre y un día válido entre 1 y 31.", "fa-solid fa-triangle-exclamation text-rose-500");
+                }
+            });
+        };
+
+        // Reminders: export as .ics calendar file with monthly repeat + alarm
+        window.exportReminderICS = (id) => {
+            const r = state.recordatorios.find(x => x.id === id);
+            if (!r) return;
+            const start = nextOccurrence(r.dia);
+            const y = start.getFullYear();
+            const m = String(start.getMonth() + 1).padStart(2, '0');
+            const d = String(start.getDate()).padStart(2, '0');
+            const dt = `${y}${m}${d}`;
+            const title = `${tipoLabel(r.tipo)}: ${r.nombre}${r.monto ? ' ($' + r.monto.toLocaleString() + ')' : ''}`;
+            const ics = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//FinanzasPro AI//ES',
+                'BEGIN:VEVENT',
+                `UID:${r.id}@finanzaspro`,
+                `DTSTART;VALUE=DATE:${dt}`,
+                `DTEND;VALUE=DATE:${dt}`,
+                'RRULE:FREQ=MONTHLY',
+                `SUMMARY:${title}`,
+                'BEGIN:VALARM',
+                'ACTION:DISPLAY',
+                'DESCRIPTION:Recordatorio financiero',
+                'TRIGGER:-P1D',
+                'END:VALARM',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+            const blob = new Blob([ics], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recordatorio-${r.nombre.replace(/\s+/g, '-').toLowerCase()}.ics`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // Generic Item Deletion
+        window.deleteItem = (list, id) => {
+            state[list] = state[list].filter(item => item.id != id);
+            updateUI();
+        };
+
+        // Generic Setting value updates
+        window.updateSetting = (list, id, field, value) => {
+            const item = state[list].find(i => i.id == id);
+            if(item) {
+                item[field] = (field === 'monto' || field === 'limite' || field === 'tope' || field === 'gastado' || field === 'dia') ? parseFloat(value) || 0 : value;
+                updateUI();
+            }
+        };
+
+        // Processing dynamic movements
+        window.processAction = () => {
+            const type = document.getElementById('type').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const targetId = document.getElementById('target-card').value;
+            
+            if (!amount || isNaN(amount) || amount <= 0) {
+                return window.showAlert("Atención", "Por favor ingresa un monto válido superior a 0.", "fa-solid fa-triangle-exclamation text-amber-500");
+            }
+            
+            const card = state.tarjetas.find(t => t.id == targetId);
+            if (!card) {
+                return window.showAlert("Atención", "No has configurado ninguna tarjeta bancaria aún.", "fa-solid fa-credit-card text-rose-500");
+            }
+
+            if (type === 'gasto') {
+                const catName = document.getElementById('concept-select').value;
+                const cat = state.gastosFijos.find(f => f.nombre === catName);
+                if (cat) {
+                    cat.gastado += amount;
+                    // Check if category has exceeded budget
+                    if (cat.gastado > cat.tope) {
+                        window.showAlert("Límite Superado 🚨", `¡Alerta! Tu gasto en la categoría de "${cat.nombre}" ha superado el límite fijado de $${cat.tope.toLocaleString()}.`, "fa-solid fa-triangle-exclamation text-rose-500");
+                    }
+                }
+                card.gastado += amount;
+                state.movimientos.unshift({
+                    id: Date.now(),
+                    concept: catName,
+                    amount,
+                    type: 'gasto',
+                    date: new Date().toISOString(),
+                    card: card.nombre,
+                    emoji: cat ? cat.emoji : '💸'
+                });
+            } else {
+                card.gastado = Math.max(card.gastado - amount, 0);
+                state.movimientos.unshift({
+                    id: Date.now(),
+                    concept: 'Abono / Pago',
+                    amount,
+                    type: 'pago',
+                    date: new Date().toISOString(),
+                    card: card.nombre,
+                    emoji: '🏦'
+                });
+            }
+
+            updateUI();
+            window.switchTab('view-dashboard');
+            document.getElementById('amount').value = '';
+        };
+
+        // UI Builder Engine
+        function updateUI() {
+            // Totals and KPI displays
+            const totalDebt = state.tarjetas.reduce((s, t) => s + (t.gastado || 0), 0);
+            const totalIncome = state.fuentesIngreso.reduce((s, i) => s + (i.monto || 0), 0);
+            
+            document.getElementById('total-debt').innerText = `$${totalDebt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('total-income-display').innerText = `$${totalIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Render Active Credit Cards
+            document.getElementById('cards-list').innerHTML = state.tarjetas.map(t => {
+                const ratio = t.limite > 0 ? (t.gastado / t.limite) * 100 : 0;
+                return `
+                    <div class="bg-slate-800/40 border border-slate-800 p-4 rounded-2xl flex justify-between items-center transition-all hover:border-slate-700">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">${t.nombre}</span>
+                            <p class="text-lg font-black text-white">$${(t.gastado || 0).toLocaleString()}</p>
+                        </div>
+                        <div class="text-right space-y-1.5">
+                            <span class="text-[10px] text-slate-500 font-bold block">Límite: $${t.limite.toLocaleString()}</span>
+                            <div class="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(ratio, 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Savings Goals
+            document.getElementById('goals-list').innerHTML = state.metas.map(m => {
+                const progress = m.total > 0 ? (m.actual / m.total) * 100 : 0;
+                return `
+                    <div class="bg-slate-800/20 border border-slate-800/60 p-4 rounded-2xl space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-200">${m.nombre}</h4>
+                                <span class="text-[9px] text-slate-500 uppercase font-black">Meta: $${m.total.toLocaleString()}</span>
+                            </div>
+                            <button onclick="window.addProgressToGoal(${m.id})" class="text-[9px] font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-3 py-1.5 rounded-xl transition-all">
+                                <i class="fa-solid fa-piggy-bank"></i> Ahorrar
+                            </button>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(progress, 100)}%"></div>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] font-semibold">
+                                <span class="text-emerald-400">$${m.actual.toLocaleString()}</span>
+                                <span class="text-slate-500">${Math.round(progress)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Incomes tab list
+            document.getElementById('ingresos-list').innerHTML = state.fuentesIngreso.map(i => `
+                <div class="bg-slate-800/40 border border-slate-800 p-4 rounded-2xl flex justify-between items-center transition-all hover:border-slate-700">
+                    <div class="flex-1">
+                        <input type="text" onchange="window.updateSetting('fuentesIngreso', ${i.id}, 'nombre', this.value)" value="${i.nombre}" class="bg-transparent font-bold text-sm text-slate-200 outline-none w-full">
+                        <div class="flex items-center gap-1.5 mt-1.5">
+                            <span class="text-xs text-slate-500 font-bold">$</span>
+                            <input type="number" onchange="window.updateSetting('fuentesIngreso', ${i.id}, 'monto', this.value)" value="${i.monto}" class="bg-transparent text-xs text-emerald-400 font-black outline-none w-24">
+                        </div>
+                    </div>
+                    <button onclick="window.deleteItem('fuentesIngreso', ${i.id})" class="text-slate-500 hover:text-rose-400 p-2 transition-colors">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Populate Form Selectors
+            document.getElementById('concept-select').innerHTML = state.gastosFijos.map(f => `<option value="${f.nombre}">${f.emoji} ${f.nombre}</option>`).join('');
+            document.getElementById('target-card').innerHTML = state.tarjetas.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+
+            // Render detailed Category progress
+            document.getElementById('expenses-detail').innerHTML = state.gastosFijos.map(f => {
+                const ratio = f.tope > 0 ? (f.gastado / f.tope) * 100 : 0;
+                let gaugeColor = f.color || '#3b82f6';
+                if (ratio > 100) gaugeColor = '#f43f5e'; // Highlight overflow red
+
+                return `
+                    <div class="bg-slate-850 border border-slate-800/80 p-4 rounded-2xl flex flex-col gap-2.5 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-xl">${f.emoji}</span>
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-200">${f.nombre}</h4>
+                                    <span class="text-[9px] text-slate-500 uppercase font-black">Límite: $${f.tope.toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-black text-slate-100">$${(f.gastado || 0).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500" style="width: ${Math.min(ratio, 100)}%; background-color: ${gaugeColor}"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Recent Actions history
+            document.getElementById('movimientos-list').innerHTML = (state.movimientos || []).slice(0, 8).map(m => `
+                <div class="flex justify-between items-center p-3 bg-slate-800/20 border border-slate-800/40 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">${m.emoji || '💸'}</span>
+                        <div>
+                            <p class="font-bold text-xs text-slate-200">${m.concept}</p>
+                            <p class="text-[9px] text-slate-500 uppercase font-black mt-0.5">${m.card} • ${new Date(m.date).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <p class="font-black text-xs ${m.type === 'gasto' ? 'text-rose-400' : 'text-emerald-400'}">
+                        ${m.type === 'gasto' ? '-' : '+'}$${m.amount.toLocaleString()}
+                    </p>
+                </div>
+            `).join('');
+
+            // Reminders sorted by proximity
+            const sortedReminders = [...state.recordatorios].sort((a, b) => daysUntil(a.dia) - daysUntil(b.dia));
+
+            function reminderCardHTML(r, compact) {
+                const dias = daysUntil(r.dia);
+                let badgeColor = 'bg-slate-700 text-slate-300';
+                if (dias <= 3) badgeColor = 'bg-rose-500/20 text-rose-400';
+                else if (dias <= 7) badgeColor = 'bg-amber-500/20 text-amber-400';
+                const diasLabel = dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : `En ${dias} días`;
+                return `
+                    <div class="bg-slate-800/40 border border-slate-800 p-4 rounded-2xl flex justify-between items-center transition-all hover:border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                                <i class="fa-solid ${tipoIcon(r.tipo)} text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm text-slate-200">${r.nombre}</p>
+                                <p class="text-[9px] text-slate-500 uppercase font-black mt-0.5">${tipoLabel(r.tipo)}${r.monto ? ' • $' + r.monto.toLocaleString() : ''}</p>
+                            </div>
+                        </div>
+                        <div class="text-right space-y-1.5">
+                            <span class="text-[9px] font-black px-2 py-1 rounded-lg ${badgeColor}">${diasLabel}</span>
+                            ${compact ? '' : `<button onclick="window.exportReminderICS(${r.id})" class="block text-[9px] font-bold text-indigo-400 hover:underline mt-1"><i class="fa-solid fa-calendar-plus"></i> Agregar al calendario</button>`}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('reminders-preview').innerHTML = sortedReminders.slice(0, 3).map(r => reminderCardHTML(r, true)).join('') ||
+                '<p class="text-xs text-slate-500 px-1">No tienes recordatorios configurados.</p>';
+
+            const dueSoon = sortedReminders.some(r => daysUntil(r.dia) <= 3);
+            document.getElementById('reminder-badge').classList.toggle('hidden', !dueSoon);
+
+            document.getElementById('settings-reminders').innerHTML = sortedReminders.map(r => `
+                <div class="p-4 bg-slate-800/40 border border-slate-800 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 space-y-1">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid ${tipoIcon(r.tipo)} text-indigo-400 text-xs"></i>
+                                <input type="text" onchange="window.updateSetting('recordatorios', ${r.id}, 'nombre', this.value)" value="${r.nombre}" class="bg-transparent font-bold text-sm text-slate-200 outline-none flex-1">
+                            </div>
+                            <span class="text-[9px] text-slate-500 uppercase font-black block">${tipoLabel(r.tipo)}</span>
+                        </div>
+                        <button onclick="window.deleteItem('recordatorios', ${r.id})" class="text-slate-500 hover:text-rose-400 p-1 transition-colors">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Día del mes</span>
+                            <input type="number" min="1" max="31" onchange="window.updateSetting('recordatorios', ${r.id}, 'dia', this.value)" value="${r.dia}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Monto aprox.</span>
+                            <input type="number" onchange="window.updateSetting('recordatorios', ${r.id}, 'monto', this.value)" value="${r.monto || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 font-black outline-none">
+                        </div>
+                    </div>
+                    <button onclick="window.exportReminderICS(${r.id})" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-[10px] font-black uppercase text-indigo-300 tracking-wider transition-all">
+                        <i class="fa-solid fa-calendar-plus"></i> Descargar recordatorio (.ics)
+                    </button>
+                </div>
+            `).join('') || '<p class="text-xs text-slate-500 px-1">Aún no has agregado recordatorios.</p>';
+
+            // Settings views - cards edition lists
+            document.getElementById('settings-cards').innerHTML = state.tarjetas.map(t => `
+                <div class="p-4 bg-slate-800/40 border border-slate-800 rounded-2xl flex justify-between items-center">
+                    <div class="flex-1 space-y-1">
+                        <input type="text" onchange="window.updateSetting('tarjetas', ${t.id}, 'nombre', this.value)" value="${t.nombre}" class="bg-transparent font-bold text-sm text-slate-200 outline-none w-full">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Límite: $</span>
+                            <input type="number" onchange="window.updateSetting('tarjetas', ${t.id}, 'limite', this.value)" value="${t.limite}" class="bg-transparent text-xs text-indigo-400 font-black outline-none w-24">
+                        </div>
+                    </div>
+                    <button onclick="window.deleteItem('tarjetas', ${t.id})" class="text-slate-500 hover:text-rose-400 p-2 transition-colors">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Settings views - category editing lists
+            document.getElementById('settings-categories').innerHTML = state.gastosFijos.map(c => `
+                <div class="p-4 bg-slate-800/40 border border-slate-800 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-2 items-center">
+                            <input type="text" onchange="window.updateSetting('gastosFijos', '${c.id}', 'emoji', this.value)" value="${c.emoji}" class="w-10 p-1.5 bg-slate-950 border border-slate-800 rounded text-center text-sm font-bold text-white outline-none">
+                            <input type="text" onchange="window.updateSetting('gastosFijos', '${c.id}', 'nombre', this.value)" value="${c.nombre}" class="bg-transparent font-bold text-sm text-slate-200 outline-none w-32">
+                        </div>
+                        <button onclick="window.deleteItem('gastosFijos', '${c.id}')" class="text-slate-500 hover:text-rose-500 p-2 transition-colors">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Presupuesto Límite</span>
+                            <input type="number" onchange="window.updateSetting('gastosFijos', '${c.id}', 'tope', this.value)" value="${c.tope}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Color Visual</span>
+                            <input type="color" onchange="window.updateSetting('gastosFijos', '${c.id}', 'color', this.value)" value="${c.color || '#6366f1'}" class="w-full h-9 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize view states
+        updateUI();
+    </script>
+</body>
+</html>
