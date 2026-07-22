@@ -112,8 +112,9 @@
                 <!-- Main Balance Sheet -->
                 <div class="bg-gradient-to-br from-indigo-50 via-white to-white border border-indigo-100 rounded-3xl p-6 relative overflow-hidden shadow-xl shadow-indigo-950/20">
                     <div class="absolute -right-12 -top-12 w-40 h-40 bg-indigo-200/40 rounded-full blur-2xl"></div>
-                    <span class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest block mb-1">Deuda en Tarjetas</span>
-                    <h2 id="total-debt" class="text-4xl font-black text-rose-400 tracking-tight">$0.00</h2>
+                    <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mb-1">Mi Saldo Total <span id="ciclo-label" class="normal-case font-bold text-indigo-300">(cargando ciclo...)</span></span>
+                    <h2 id="total-debt" class="text-4xl font-black text-indigo-600 tracking-tight">$0.00</h2>
+                    <p class="text-[10px] text-slate-500 font-bold mt-1">Salario + ingresos extra + disponible en tarjetas</p>
                     
                     <div class="mt-4 flex flex-wrap gap-2">
                         <button onclick="window.runAIPrediction()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-[10px] font-black uppercase text-indigo-300 tracking-wider flex items-center gap-1 transition-all">
@@ -122,6 +123,38 @@
                         <button onclick="window.runAISimulation()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-100 border border-slate-300 rounded-xl text-[10px] font-black uppercase text-slate-600 tracking-wider flex items-center gap-1 transition-all">
                             <i class="fa-solid fa-shuffle"></i> Simular Escenario ✨
                         </button>
+                    </div>
+                </div>
+
+                <!-- Salario (solo exhibición) -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                            <i class="fa-solid fa-sack-dollar text-sm"></i>
+                        </div>
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Salario</span>
+                    </div>
+                    <span id="salario-total" class="text-lg font-black text-slate-900">$0.00</span>
+                </div>
+
+                <!-- Active Cards section -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Mis Tarjetas</h3>
+                        <span class="text-[10px] text-slate-500">Tope / Disponible</span>
+                    </div>
+                    <div id="cards-list" class="space-y-2.5">
+                        <!-- Dynamic list generated in JS -->
+                    </div>
+                </div>
+
+                <!-- Ingresos Extra (solo exhibición) -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Ingresos Extra</h3>
+                    </div>
+                    <div id="ingresos-extra-list" class="space-y-2.5">
+                        <!-- Dynamic list generated in JS -->
                     </div>
                 </div>
 
@@ -134,26 +167,22 @@
                     <div id="reminders-preview" class="space-y-2.5"></div>
                 </div>
 
-                <!-- Savings Goals section -->
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center px-1">
-                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Metas de Ahorro</h3>
-                        <button onclick="window.openGoalPlanner()" class="text-xs font-bold text-indigo-400 hover:underline">+ Planificar Meta</button>
+                <!-- Ahorro automático (calculado, no manual) -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                            <i class="fa-solid fa-piggy-bank text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Ahorro este ciclo</span>
+                            <span class="text-[9px] text-slate-400">Lo que no gastaste de tus topes</span>
+                        </div>
                     </div>
-                    <div id="goals-list" class="space-y-2.5">
-                        <!-- Dynamic list generated in JS -->
-                    </div>
+                    <span id="ahorro-total" class="text-lg font-black text-emerald-600">$0.00</span>
                 </div>
-
-                <!-- Active Cards section -->
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center px-1">
-                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Mis Tarjetas</h3>
-                        <span class="text-[10px] text-slate-500">Saldo/Límite</span>
-                    </div>
-                    <div id="cards-list" class="space-y-2.5">
-                        <!-- Dynamic list generated in JS -->
-                    </div>
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ahorro acumulado (ciclos anteriores)</span>
+                    <span id="ahorro-acumulado" class="text-sm font-black text-emerald-500">$0.00</span>
                 </div>
             </section>
 
@@ -182,29 +211,37 @@
                 <div class="bg-slate-50 border border-slate-200 p-6 rounded-3xl space-y-5">
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tipo de Movimiento</label>
-                        <select id="type" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
-                            <option value="gasto">💸 Registrar un Gasto</option>
-                            <option value="pago">🏦 Abonar a Tarjeta</option>
+                        <select id="type" onchange="window.toggleAddFields()" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
+                            <option value="gasto">💸 Registrar un Gasto (de Presupuesto)</option>
+                            <option value="pago">🏦 Pago de Tarjeta</option>
                         </select>
                     </div>
 
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Categoría</label>
-                        <select id="concept-select" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
-                            <!-- Populated with categories -->
+                    <div id="field-concepto" class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Concepto del Presupuesto</label>
+                        <select id="concept-select" onchange="window.updateUI()" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
+                            <!-- Populated with gastosFijos -->
+                        </select>
+                        <p id="concept-fuente-hint" class="text-[10px] text-slate-400 ml-1"></p>
+                    </div>
+
+                    <div id="field-tarjeta-pagar" class="space-y-1 hidden">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tarjeta a Pagar</label>
+                        <select id="target-card" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
+                            <!-- Populated with credit cards -->
+                        </select>
+                    </div>
+
+                    <div id="field-fuente-fondos" class="space-y-1 hidden">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">¿De dónde sale el dinero?</label>
+                        <select id="fuente-fondos" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
+                            <!-- Populated with fuentesIngreso -->
                         </select>
                     </div>
 
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto exacto ($)</label>
                         <input type="number" id="amount" placeholder="0.00" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-2xl text-indigo-400 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Vincular a Tarjeta</label>
-                        <select id="target-card" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
-                            <!-- Populated with credit cards -->
-                        </select>
                     </div>
 
                     <button onclick="window.processAction()" class="w-full py-4.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
@@ -216,14 +253,32 @@
             <!-- TAB 4: EXPENSES DETAILED (GASTOS) -->
             <section id="view-list" class="tab-content hidden space-y-6">
                 <div class="flex justify-between items-center px-1">
-                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Topes de Categorías</h3>
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Presupuesto</h3>
                     <button onclick="window.runAIPrediction()" class="text-xs font-bold text-indigo-400 hover:underline flex items-center gap-1">
                         <i class="fa-solid fa-robot"></i> Consejos IA
                     </button>
                 </div>
 
-                <div id="expenses-detail" class="grid grid-cols-1 gap-3">
-                    <!-- Dynamic categories lists -->
+                <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                    <table class="w-full text-xs min-w-[560px]">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase text-[9px] font-black">
+                                <th class="text-left p-3">Concepto</th>
+                                <th class="text-right p-3">Destinado</th>
+                                <th class="text-right p-3">Gastado</th>
+                                <th class="text-right p-3">Ahorrado</th>
+                                <th class="text-left p-3">Pagado con</th>
+                                <th class="p-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="presupuesto-table">
+                            <!-- Dynamic rows generated in JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="desglose-panels" class="space-y-3">
+                    <!-- Paneles de desglose por categoría (ej. Comida: Carnes, Merienda...) -->
                 </div>
 
                 <div class="pt-2 space-y-3">
@@ -250,6 +305,27 @@
                     <button id="sheets-connect-btn" onclick="window.connectSheets()" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
                         Conectar
                     </button>
+                </div>
+
+                <!-- Ciclo de Facturación -->
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                            <i class="fa-solid fa-calendar-days text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm text-slate-800">Ciclo de Facturación</p>
+                            <p class="text-[10px] text-slate-500 font-bold">Ciclo actual: <span id="ciclo-label-ajustes"></span></p>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Día del mes en que empieza tu ciclo (ej. el día que te pagan)</span>
+                        <input type="number" min="1" max="31" id="ciclo-inicio-input" onchange="window.updateCicloInicio(this.value)" class="w-full bg-white border border-indigo-200 rounded-xl p-2.5 text-xs text-indigo-600 font-black outline-none">
+                    </div>
+                    <button onclick="window.confirmarCierreCiclo()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
+                        <i class="fa-solid fa-rotate"></i> Cerrar ciclo y reiniciar cálculos
+                    </button>
+                    <p class="text-[9px] text-slate-400 leading-relaxed">Al cerrar el ciclo: el ahorro de este período se suma a tu ahorro acumulado, y el gasto de tarjetas, ingresos y presupuesto vuelve a $0 para empezar el nuevo ciclo. El historial de movimientos no se borra.</p>
                 </div>
 
                 <!-- Reminders Section -->
@@ -368,34 +444,60 @@
         // Global App State
         let state = {
             fuentesIngreso: [
-                { id: 1, nombre: "Sueldo Principal", monto: 25000 },
-                { id: 2, nombre: "Proyecto Freelance", monto: 5000 }
+                { id: 1, nombre: "Sueldo Principal", monto: 25000, tipo: "salario", emoji: "💼", gastado: 0 },
+                { id: 2, nombre: "Proyecto Freelance", monto: 5000, tipo: "extra", emoji: "💻", gastado: 0 }
             ],
             tarjetas: [
-                { id: 1, nombre: "Visa Principal", limite: 20000, gastado: 8500 },
-                { id: 2, nombre: "American Express", limite: 45000, gastado: 12400 }
+                { id: 1, nombre: "Visa Principal", limite: 20000, tope: 8000, gastado: 8500, emoji: "💳" },
+                { id: 2, nombre: "American Express", limite: 45000, tope: 15000, gastado: 12400, emoji: "🏦" }
             ],
             gastosFijos: [
-                { id: '1', nombre: "Comida", tope: 5000, gastado: 3200, emoji: "🌮", color: "#f59e0b" },
-                { id: '2', nombre: "Servicios", tope: 3000, gastado: 1800, emoji: "⚡", color: "#3b82f6" },
-                { id: '3', nombre: "Entretenimiento", tope: 2500, gastado: 2450, emoji: "🍿", color: "#ec4899" },
-                { id: '4', nombre: "Transporte", tope: 1500, gastado: 800, emoji: "🚗", color: "#10b981" }
+                { id: '1', nombre: "Comida", tope: 5000, gastado: 3200, fuenteTipo: 'tarjeta', fuenteId: 1, emoji: "🌮", color: "#f59e0b", desglose: [ { id: 'd1', nombre: 'Carnes', monto: 1800 }, { id: 'd2', nombre: 'Merienda', monto: 1400 } ] },
+                { id: '2', nombre: "Servicios", tope: 3000, gastado: 1800, fuenteTipo: 'ingreso', fuenteId: 1, emoji: "⚡", color: "#3b82f6", desglose: [] },
+                { id: '3', nombre: "Entretenimiento", tope: 2500, gastado: 2450, fuenteTipo: 'tarjeta', fuenteId: 1, emoji: "🍿", color: "#ec4899", desglose: [] },
+                { id: '4', nombre: "Transporte", tope: 1500, gastado: 800, fuenteTipo: 'tarjeta', fuenteId: 1, emoji: "🚗", color: "#10b981", desglose: [] }
             ],
             movimientos: [
                 { id: 1, concept: "Cena familiar", amount: 1200, type: "gasto", date: new Date().toISOString(), card: "Visa Principal", emoji: "🌮" },
                 { id: 2, concept: "Suscripción streaming", amount: 250, type: "gasto", date: new Date().toISOString(), card: "American Express", emoji: "🍿" },
                 { id: 3, concept: "Abono mensual", amount: 3000, type: "pago", date: new Date().toISOString(), card: "Visa Principal", emoji: "🏦" }
             ],
-            metas: [
-                { id: 1, nombre: "Fondo de Emergencias", total: 15000, actual: 4500, cuota: 1500 },
-                { id: 2, nombre: "Viaje a la Playa", total: 8000, actual: 3200, cuota: 800 }
-            ],
             recordatorios: [
                 { id: 1, tipo: 'corte', nombre: 'Visa Principal', dia: 25, monto: null, tarjetaId: 1 },
                 { id: 2, tipo: 'pago', nombre: 'Visa Principal', dia: 5, monto: 3000, tarjetaId: 1 },
                 { id: 3, tipo: 'servicio', nombre: 'Internet Claro', dia: 10, monto: 1800, tarjetaId: null }
-            ]
+            ],
+            cicloInicio: 25, // día del mes en que empieza tu ciclo financiero (ej. día que te pagan)
+            ahorroAcumulado: 0 // se va sumando cada vez que cierras un ciclo
         };
+
+        // Devuelve todas las "fuentes de pago" posibles: tarjetas + fuentes de ingreso, en un solo listado
+        function getFuentesPago() {
+            return [
+                ...state.tarjetas.map(t => ({ tipo: 'tarjeta', id: t.id, nombre: t.nombre, emoji: t.emoji || '💳' })),
+                ...state.fuentesIngreso.map(i => ({ tipo: 'ingreso', id: i.id, nombre: i.nombre + (i.tipo === 'salario' ? ' (Salario)' : ' (Extra)'), emoji: i.emoji || '💰' }))
+            ];
+        }
+        // Registra un gasto contra la fuente correcta (resta disponible de tarjeta, o suma "gastado" a un ingreso)
+        function registrarGastoEnFuente(fuenteTipo, fuenteId, monto) {
+            if (fuenteTipo === 'tarjeta') {
+                const t = state.tarjetas.find(x => x.id === fuenteId);
+                if (t) t.gastado = (t.gastado || 0) + monto;
+            } else if (fuenteTipo === 'ingreso') {
+                const i = state.fuentesIngreso.find(x => x.id === fuenteId);
+                if (i) i.gastado = (i.gastado || 0) + monto;
+            }
+        }
+        // Etiqueta del ciclo actual, ej. "25 Jul – 24 Ago"
+        function cicloLabel() {
+            const dia = state.cicloInicio || 1;
+            const now = new Date();
+            let inicio = new Date(now.getFullYear(), now.getMonth(), dia);
+            if (now.getDate() < dia) inicio = new Date(now.getFullYear(), now.getMonth() - 1, dia);
+            const fin = new Date(inicio.getFullYear(), inicio.getMonth() + 1, dia - 1);
+            const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            return `${inicio.getDate()} ${meses[inicio.getMonth()]} – ${fin.getDate()} ${meses[fin.getMonth()]}`;
+        }
 
         // UI Live Clock Simulator
         function updateClock() {
@@ -550,67 +652,40 @@
             });
         };
 
-        // Adding Savings Goal
-        window.openGoalPlanner = () => {
-            window.openPrompt("Planificar Nueva Meta ✨", [
-                { id: 'nombre', label: 'Nombre del Objetivo', type: 'text', placeholder: 'Ej. Auto nuevo' },
-                { id: 'total', label: 'Monto Total Necesario', type: 'number', placeholder: 'Monto $' },
-                { id: 'cuota', label: 'Ahorro Mensual', type: 'number', placeholder: 'Cuota' }
-            ], (inputs) => {
-                const name = inputs.nombre;
-                const total = parseFloat(inputs.total);
-                const cuota = parseFloat(inputs.cuota);
-
-                if (name && !isNaN(total) && !isNaN(cuota)) {
-                    state.metas.push({ id: Date.now(), nombre: name, total, actual: 0, cuota });
-                    updateUI();
-                } else {
-                    window.showAlert("Error", "Por favor introduce valores numéricos correctos.", "fa-solid fa-triangle-exclamation text-rose-500");
-                }
-            });
-        };
-
-        // Goal Progress addition
-        window.addProgressToGoal = (id) => {
-            const goal = state.metas.find(m => m.id === id);
-            if (!goal) return;
-            
-            window.openPrompt(`Abonar a: ${goal.nombre}`, [
-                { id: 'monto', label: 'Cantidad a aportar ($)', type: 'number', placeholder: '0.00' }
-            ], (inputs) => {
-                const mnt = parseFloat(inputs.monto);
-                if (!isNaN(mnt) && mnt > 0) {
-                    goal.actual = Math.min(goal.actual + mnt, goal.total);
-                    updateUI();
-                }
-            });
-        };
-
         // Manage Income
         window.openAddIncomeModal = () => {
             window.openPrompt("Añadir Fuente de Ingreso", [
+                { id: 'tipo', label: 'Tipo', type: 'select', value: 'extra', options: [
+                    { value: 'salario', label: 'Salario' },
+                    { value: 'extra', label: 'Ingreso extra' }
+                ]},
                 { id: 'nombre', label: 'Nombre / Detalle', type: 'text', placeholder: 'Ej. Renta de local' },
-                { id: 'monto', label: 'Monto Mensual ($)', type: 'number', placeholder: '0.00' }
+                { id: 'monto', label: 'Monto Mensual ($)', type: 'number', placeholder: '0.00' },
+                { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '💼' }
             ], (inputs) => {
                 const nombre = inputs.nombre;
                 const monto = parseFloat(inputs.monto);
                 if (nombre && !isNaN(monto)) {
-                    state.fuentesIngreso.push({ id: Date.now(), nombre, monto });
+                    state.fuentesIngreso.push({ id: Date.now(), nombre, monto, tipo: inputs.tipo, emoji: inputs.emoji || '💰', gastado: 0 });
                     updateUI();
                 }
             });
         };
+
 
         // Manage Settings - Bank Card addition
         window.promptAddCard = () => {
             window.openPrompt("Nueva Tarjeta", [
                 { id: 'nombre', label: 'Nombre de la Tarjeta', type: 'text', placeholder: 'Ej. Mastercard Oro' },
-                { id: 'limite', label: 'Límite de Crédito ($)', type: 'number', placeholder: '0.00' }
+                { id: 'limite', label: 'Límite de Crédito ($)', type: 'number', placeholder: '0.00' },
+                { id: 'tope', label: 'Tope de gasto mensual que TE pones ($)', type: 'number', placeholder: '0.00' },
+                { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '💳' }
             ], (inputs) => {
                 const nombre = inputs.nombre;
                 const limite = parseFloat(inputs.limite);
+                const tope = parseFloat(inputs.tope) || limite;
                 if (nombre && !isNaN(limite)) {
-                    state.tarjetas.push({ id: Date.now(), nombre, limite, gastado: 0 });
+                    state.tarjetas.push({ id: Date.now(), nombre, limite, tope, gastado: 0, emoji: inputs.emoji || '💳' });
                     updateUI();
                 }
             });
@@ -618,26 +693,62 @@
 
         // Manage Settings - Categories addition
         window.promptAddCategory = () => {
-            window.openPrompt("Nueva Categoría de Gasto", [
-                { id: 'nombre', label: 'Nombre', type: 'text', placeholder: 'Ej. Gasolina' },
-                { id: 'tope', label: 'Presupuesto Límite ($)', type: 'number', placeholder: '0.00' },
+            const fuentes = getFuentesPago();
+            window.openPrompt("Nuevo Concepto de Presupuesto", [
+                { id: 'nombre', label: 'Concepto', type: 'text', placeholder: 'Ej. Gasolina' },
+                { id: 'tope', label: 'Cantidad Destinada ($)', type: 'number', placeholder: '0.00' },
+                { id: 'fuente', label: 'Pagado con', type: 'select', value: fuentes[0] ? `${fuentes[0].tipo}:${fuentes[0].id}` : '', options: fuentes.map(f => ({ value: `${f.tipo}:${f.id}`, label: `${f.emoji} ${f.nombre}` })) },
                 { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '🚗' }
             ], (inputs) => {
                 const nombre = inputs.nombre;
                 const tope = parseFloat(inputs.tope);
                 const emoji = inputs.emoji || "💰";
+                const [fuenteTipo, fuenteIdRaw] = (inputs.fuente || '').split(':');
                 if (nombre && !isNaN(tope)) {
                     state.gastosFijos.push({
                         id: Date.now().toString(),
                         nombre,
                         tope,
                         gastado: 0,
+                        fuenteTipo: fuenteTipo || null,
+                        fuenteId: fuenteIdRaw ? parseInt(fuenteIdRaw) : null,
                         emoji,
-                        color: "#6366f1"
+                        color: "#6366f1",
+                        desglose: []
                     });
                     updateUI();
                 }
             });
+        };
+
+        // Presupuesto: agregar un sub-ítem del desglose (ej. "Carnes $1000" dentro de "Comida")
+        window.promptAddDesglose = (categoriaId) => {
+            window.openPrompt("Agregar al desglose", [
+                { id: 'nombre', label: 'Nombre', type: 'text', placeholder: 'Ej. Carnes' },
+                { id: 'monto', label: 'Monto ($)', type: 'number', placeholder: '0.00' }
+            ], (inputs) => {
+                const cat = state.gastosFijos.find(c => c.id === categoriaId);
+                const monto = parseFloat(inputs.monto);
+                if (cat && inputs.nombre && !isNaN(monto)) {
+                    if (!cat.desglose) cat.desglose = [];
+                    cat.desglose.push({ id: 'd' + Date.now(), nombre: inputs.nombre, monto });
+                    cat.gastado = (cat.gastado || 0) + monto;
+                    if (cat.fuenteTipo && cat.fuenteId) registrarGastoEnFuente(cat.fuenteTipo, cat.fuenteId, monto);
+                    updateUI();
+                }
+            });
+        };
+        window.deleteDesglose = (categoriaId, itemId) => {
+            const cat = state.gastosFijos.find(c => c.id === categoriaId);
+            if (cat) {
+                const item = (cat.desglose || []).find(d => d.id === itemId);
+                if (item) {
+                    cat.desglose = cat.desglose.filter(d => d.id !== itemId);
+                    cat.gastado = Math.max((cat.gastado || 0) - item.monto, 0);
+                    if (cat.fuenteTipo && cat.fuenteId) registrarGastoEnFuente(cat.fuenteTipo, cat.fuenteId, -item.monto);
+                }
+                updateUI();
+            }
         };
 
         // Reminders: date helpers
@@ -737,56 +848,95 @@
         window.updateSetting = (list, id, field, value) => {
             const item = state[list].find(i => i.id == id);
             if(item) {
-                item[field] = (field === 'monto' || field === 'limite' || field === 'tope' || field === 'gastado' || field === 'dia') ? parseFloat(value) || 0 : value;
+                if (field === 'tarjetaId') {
+                    item[field] = value ? parseInt(value) : null;
+                } else {
+                    item[field] = (field === 'monto' || field === 'limite' || field === 'tope' || field === 'gastado' || field === 'dia') ? parseFloat(value) || 0 : value;
+                }
                 updateUI();
             }
         };
+        // Actualiza a la vez fuenteTipo y fuenteId de una categoría de presupuesto (ej. "tarjeta:1" o "ingreso:2")
+        window.updateCategoriaFuente = (catId, value) => {
+            const cat = state.gastosFijos.find(c => c.id === catId);
+            if (!cat) return;
+            if (!value) { cat.fuenteTipo = null; cat.fuenteId = null; }
+            else {
+                const [tipo, idRaw] = value.split(':');
+                cat.fuenteTipo = tipo;
+                cat.fuenteId = parseInt(idRaw);
+            }
+            updateUI();
+        };
 
         // Processing dynamic movements
+        // Ciclo de facturación
+        window.updateCicloInicio = (value) => {
+            const dia = parseInt(value);
+            if (dia >= 1 && dia <= 31) { state.cicloInicio = dia; updateUI(); }
+        };
+        window.confirmarCierreCiclo = () => {
+            window.openPrompt("¿Cerrar el ciclo actual?", [
+                { id: 'confirmar', label: 'Escribe SI para confirmar', type: 'text', placeholder: 'SI' }
+            ], (inputs) => {
+                if ((inputs.confirmar || '').trim().toUpperCase() !== 'SI') return;
+                const ahorroTarjetas = state.tarjetas.reduce((s, t) => { const tope = t.tope || t.limite; return s + (t.gastado <= tope ? (tope - t.gastado) : 0); }, 0);
+                const ahorroIngresos = state.fuentesIngreso.reduce((s, i) => s + ((i.gastado || 0) <= i.monto ? (i.monto - (i.gastado || 0)) : 0), 0);
+                state.ahorroAcumulado = (state.ahorroAcumulado || 0) + ahorroTarjetas + ahorroIngresos;
+                state.tarjetas.forEach(t => t.gastado = 0);
+                state.fuentesIngreso.forEach(i => i.gastado = 0);
+                state.gastosFijos.forEach(f => { f.gastado = 0; f.desglose = []; });
+                updateUI();
+                window.showAlert("Ciclo reiniciado ✅", `Se sumaron $${(ahorroTarjetas + ahorroIngresos).toLocaleString()} a tu ahorro acumulado. Todo listo para el nuevo ciclo.`, "fa-solid fa-rotate text-emerald-500");
+            });
+        };
+
+
+        window.toggleAddFields = () => {
+            const type = document.getElementById('type').value;
+            document.getElementById('field-concepto').classList.toggle('hidden', type !== 'gasto');
+            document.getElementById('field-tarjeta-pagar').classList.toggle('hidden', type !== 'pago');
+            document.getElementById('field-fuente-fondos').classList.toggle('hidden', type !== 'pago');
+        };
+
         window.processAction = () => {
             const type = document.getElementById('type').value;
             const amount = parseFloat(document.getElementById('amount').value);
-            const targetId = document.getElementById('target-card').value;
-            
+
             if (!amount || isNaN(amount) || amount <= 0) {
                 return window.showAlert("Atención", "Por favor ingresa un monto válido superior a 0.", "fa-solid fa-triangle-exclamation text-amber-500");
             }
-            
-            const card = state.tarjetas.find(t => t.id == targetId);
-            if (!card) {
-                return window.showAlert("Atención", "No has configurado ninguna tarjeta bancaria aún.", "fa-solid fa-credit-card text-rose-500");
-            }
 
             if (type === 'gasto') {
-                const catName = document.getElementById('concept-select').value;
-                const cat = state.gastosFijos.find(f => f.nombre === catName);
-                if (cat) {
-                    cat.gastado += amount;
-                    // Check if category has exceeded budget
-                    if (cat.gastado > cat.tope) {
-                        window.showAlert("Límite Superado 🚨", `¡Alerta! Tu gasto en la categoría de "${cat.nombre}" ha superado el límite fijado de $${cat.tope.toLocaleString()}.`, "fa-solid fa-triangle-exclamation text-rose-500");
-                    }
+                const catId = document.getElementById('concept-select').value;
+                const cat = state.gastosFijos.find(f => f.id === catId);
+                if (!cat) return window.showAlert("Atención", "No has configurado ningún concepto de presupuesto aún.", "fa-solid fa-tags text-rose-500");
+
+                cat.gastado = (cat.gastado || 0) + amount;
+                if (cat.fuenteTipo && cat.fuenteId) registrarGastoEnFuente(cat.fuenteTipo, cat.fuenteId, amount);
+                if (cat.gastado > cat.tope) {
+                    window.showAlert("Límite Superado 🚨", `¡Alerta! Tu gasto en "${cat.nombre}" ha superado lo destinado de $${cat.tope.toLocaleString()}.`, "fa-solid fa-triangle-exclamation text-rose-500");
                 }
-                card.gastado += amount;
+                const fuente = getFuentesPago().find(f => f.tipo === cat.fuenteTipo && f.id === cat.fuenteId);
                 state.movimientos.unshift({
-                    id: Date.now(),
-                    concept: catName,
-                    amount,
-                    type: 'gasto',
-                    date: new Date().toISOString(),
-                    card: card.nombre,
-                    emoji: cat ? cat.emoji : '💸'
+                    id: Date.now(), concept: cat.nombre, amount, type: 'gasto',
+                    date: new Date().toISOString(), card: fuente ? fuente.nombre : '—', emoji: cat.emoji
                 });
             } else {
-                card.gastado = Math.max(card.gastado - amount, 0);
+                // Pago de tarjeta: se debita de una fuente de fondos (salario/ingreso extra) y reduce lo gastado de la tarjeta
+                const targetId = parseInt(document.getElementById('target-card').value);
+                const fuenteVal = document.getElementById('fuente-fondos').value;
+                const [fuenteTipo, fuenteIdRaw] = fuenteVal.split(':');
+                const fuenteId = parseInt(fuenteIdRaw);
+                const card = state.tarjetas.find(t => t.id === targetId);
+                if (!card) return window.showAlert("Atención", "No has configurado ninguna tarjeta bancaria aún.", "fa-solid fa-credit-card text-rose-500");
+
+                card.gastado = Math.max((card.gastado || 0) - amount, 0);
+                registrarGastoEnFuente(fuenteTipo, fuenteId, amount);
+                const fuente = getFuentesPago().find(f => f.tipo === fuenteTipo && f.id === fuenteId);
                 state.movimientos.unshift({
-                    id: Date.now(),
-                    concept: 'Abono / Pago',
-                    amount,
-                    type: 'pago',
-                    date: new Date().toISOString(),
-                    card: card.nombre,
-                    emoji: '🏦'
+                    id: Date.now(), concept: `Pago a ${card.nombre}`, amount, type: 'pago',
+                    date: new Date().toISOString(), card: fuente ? fuente.nombre : '—', emoji: '🏦'
                 });
             }
 
@@ -836,23 +986,23 @@
 
         window.loadFromSheets = async () => {
             try {
-                const ranges = ['Tarjetas!A1:D100', 'Ingresos!A1:C100', 'Metas!A1:E100', 'Recordatorios!A1:F100', 'Categorias!A1:F100'];
+                const ranges = ['Tarjetas!A1:F100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:H100'];
                 const res = await gapi.client.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
                     ranges
                 });
-                const [tarjetasR, ingresosR, metasR, recordatoriosR, categoriasR] = res.result.valueRanges.map(v => v.values);
+                const [tarjetasR, ingresosR, recordatoriosR, categoriasR] = res.result.valueRanges.map(v => v.values);
 
-                state.tarjetas = rowsToObjects(tarjetasR, [{name:'id',num:true},{name:'nombre'},{name:'limite',num:true},{name:'gastado',num:true}]);
-                state.fuentesIngreso = rowsToObjects(ingresosR, [{name:'id',num:true},{name:'nombre'},{name:'monto',num:true}]);
-                state.metas = rowsToObjects(metasR, [{name:'id',num:true},{name:'nombre'},{name:'total',num:true},{name:'actual',num:true},{name:'cuota',num:true}]);
+                state.tarjetas = rowsToObjects(tarjetasR, [{name:'id',num:true},{name:'nombre'},{name:'limite',num:true},{name:'tope',num:true},{name:'gastado',num:true},{name:'emoji'}]);
+                state.fuentesIngreso = rowsToObjects(ingresosR, [{name:'id',num:true},{name:'nombre'},{name:'monto',num:true},{name:'tipo'},{name:'emoji'},{name:'gastado',num:true}]);
                 state.recordatorios = rowsToObjects(recordatoriosR, [{name:'id',num:true},{name:'tipo'},{name:'nombre'},{name:'dia',num:true},{name:'monto',num:true,nullable:true},{name:'tarjetaId',num:true,nullable:true}]);
-                state.gastosFijos = rowsToObjects(categoriasR, [{name:'id'},{name:'nombre'},{name:'tope',num:true},{name:'gastado',num:true},{name:'emoji'},{name:'color'}]);
+                state.gastosFijos = rowsToObjects(categoriasR, [{name:'id'},{name:'nombre'},{name:'tope',num:true},{name:'gastado',num:true},{name:'fuenteTipo'},{name:'fuenteId',num:true,nullable:true},{name:'emoji'},{name:'color'}]);
+                state.gastosFijos.forEach(f => { if (!f.desglose) f.desglose = []; });
 
                 updateUI();
                 window.showAlert("Sincronizado ✅", "Tus datos reales de Google Sheets ya están cargados en la app.", "fa-solid fa-check text-emerald-400");
             } catch (err) {
-                window.showAlert("Error al leer el Sheet", "Revisa que las pestañas se llamen exactamente: Tarjetas, Ingresos, Metas, Recordatorios, Categorias (sin tilde). Detalle: " + (err.result ? err.result.error.message : err.message), "fa-solid fa-triangle-exclamation text-rose-500");
+                window.showAlert("Error al leer el Sheet", "Revisa que las pestañas se llamen exactamente: Tarjetas, Ingresos, Recordatorios, Categorias (sin tilde), y que tengan las columnas correctas. Detalle: " + (err.result ? err.result.error.message : err.message), "fa-solid fa-triangle-exclamation text-rose-500");
             }
         };
 
@@ -866,11 +1016,10 @@
             if (!sheetsConnected) return;
             try {
                 const data = [
-                    { range: 'Tarjetas!A1:D100', values: objectsToRows(state.tarjetas, ['id','nombre','limite','gastado']) },
-                    { range: 'Ingresos!A1:C100', values: objectsToRows(state.fuentesIngreso, ['id','nombre','monto']) },
-                    { range: 'Metas!A1:E100', values: objectsToRows(state.metas, ['id','nombre','total','actual','cuota']) },
+                    { range: 'Tarjetas!A1:F100', values: objectsToRows(state.tarjetas, ['id','nombre','limite','tope','gastado','emoji']) },
+                    { range: 'Ingresos!A1:F100', values: objectsToRows(state.fuentesIngreso, ['id','nombre','monto','tipo','emoji','gastado']) },
                     { range: 'Recordatorios!A1:F100', values: objectsToRows(state.recordatorios, ['id','tipo','nombre','dia','monto','tarjetaId']) },
-                    { range: 'Categorias!A1:F100', values: objectsToRows(state.gastosFijos, ['id','nombre','tope','gastado','emoji','color']) }
+                    { range: 'Categorias!A1:H100', values: objectsToRows(state.gastosFijos, ['id','nombre','tope','gastado','fuenteTipo','fuenteId','emoji','color']) }
                 ];
                 await gapi.client.sheets.spreadsheets.values.batchUpdate({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
@@ -885,51 +1034,59 @@
         function updateUI() {
             // Totals and KPI displays
             const totalDebt = state.tarjetas.reduce((s, t) => s + (t.gastado || 0), 0);
+            const totalDisponibleTarjetas = state.tarjetas.reduce((s, t) => s + Math.max((t.limite || 0) - (t.gastado || 0), 0), 0);
+            const salarioTotal = state.fuentesIngreso.filter(i => i.tipo === 'salario').reduce((s, i) => s + (i.monto || 0), 0);
+            const ingresosExtra = state.fuentesIngreso.filter(i => i.tipo !== 'salario');
+            const totalExtra = ingresosExtra.reduce((s, i) => s + (i.monto || 0), 0);
             const totalIncome = state.fuentesIngreso.reduce((s, i) => s + (i.monto || 0), 0);
-            
-            document.getElementById('total-debt').innerText = `$${totalDebt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const saldoTotal = salarioTotal + totalExtra + totalDisponibleTarjetas;
+
+            // Ahorro automático: lo no gastado del tope de cada tarjeta + lo no gastado de cada categoría del presupuesto
+            // Ahorro = lo que no gastaste del tope de cada tarjeta + lo que no gastaste de tu salario/ingresos extra
+            // (no se suma el "ahorrado" de cada categoría de presupuesto aparte, porque ese gasto ya está contado
+            // dentro de la tarjeta o el ingreso que lo financia — sumarlo de nuevo duplicaría el ahorro)
+            const ahorroTarjetas = state.tarjetas.reduce((s, t) => { const tope = t.tope || t.limite; return s + (t.gastado <= tope ? (tope - t.gastado) : 0); }, 0);
+            const ahorroIngresos = state.fuentesIngreso.reduce((s, i) => s + ((i.gastado || 0) <= i.monto ? (i.monto - (i.gastado || 0)) : 0), 0);
+            const ahorroTotal = ahorroTarjetas + ahorroIngresos;
+            document.getElementById('ahorro-total').innerText = `$${ahorroTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const ahorroAcEl = document.getElementById('ahorro-acumulado');
+            if (ahorroAcEl) ahorroAcEl.innerText = `$${(state.ahorroAcumulado || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const cicloEl = document.getElementById('ciclo-label');
+            if (cicloEl) cicloEl.innerText = cicloLabel();
+            const cicloAjustesEl = document.getElementById('ciclo-label-ajustes');
+            if (cicloAjustesEl) cicloAjustesEl.innerText = cicloLabel();
+            const cicloInput = document.getElementById('ciclo-inicio-input');
+            if (cicloInput && document.activeElement !== cicloInput) cicloInput.value = state.cicloInicio || 25;
+
+            document.getElementById('total-debt').innerText = `$${saldoTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('salario-total').innerText = `$${salarioTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('total-income-display').innerText = `$${totalIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            // Ingresos Extra (solo exhibición en Cartera)
+            document.getElementById('ingresos-extra-list').innerHTML = ingresosExtra.map(i => `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex justify-between items-center">
+                    <span class="font-bold text-sm text-slate-800">${i.emoji || '💰'} ${i.nombre}</span>
+                    <span class="font-black text-sm text-emerald-500">$${i.monto.toLocaleString()}</span>
+                </div>
+            `).join('') || '<p class="text-xs text-slate-500 px-1">Aún no tienes ingresos extra.</p>';
             
             // Render Active Credit Cards
             document.getElementById('cards-list').innerHTML = state.tarjetas.map(t => {
-                const ratio = t.limite > 0 ? (t.gastado / t.limite) * 100 : 0;
+                const tope = t.tope || t.limite;
+                const ratio = tope > 0 ? (t.gastado / tope) * 100 : 0;
+                const sobregasto = t.gastado > tope;
+                const disponibleCredito = Math.max((t.limite || 0) - (t.gastado || 0), 0);
+                const barColor = sobregasto ? 'bg-rose-500' : 'bg-indigo-500';
                 return `
-                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex justify-between items-center transition-all hover:border-slate-300">
+                    <div class="bg-slate-50 border ${sobregasto ? 'border-rose-300' : 'border-slate-200'} p-4 rounded-2xl flex justify-between items-center transition-all hover:border-slate-300">
                         <div class="space-y-1">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">${t.nombre}</span>
-                            <p class="text-lg font-black text-slate-900">$${(t.gastado || 0).toLocaleString()}</p>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">${t.emoji || '💳'} ${t.nombre}</span>
+                            <p class="text-lg font-black text-emerald-500">$${disponibleCredito.toLocaleString()} <span class="text-[10px] font-bold text-slate-500 uppercase">crédito disp.</span></p>
                         </div>
                         <div class="text-right space-y-1.5">
-                            <span class="text-[10px] text-slate-500 font-bold block">Límite: $${t.limite.toLocaleString()}</span>
+                            <span class="text-[10px] ${sobregasto ? 'text-rose-500' : 'text-slate-500'} font-bold block">Tope gasto: $${tope.toLocaleString()}</span>
                             <div class="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(ratio, 100)}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Render Savings Goals
-            document.getElementById('goals-list').innerHTML = state.metas.map(m => {
-                const progress = m.total > 0 ? (m.actual / m.total) * 100 : 0;
-                return `
-                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4 class="font-bold text-sm text-slate-800">${m.nombre}</h4>
-                                <span class="text-[9px] text-slate-500 uppercase font-black">Meta: $${m.total.toLocaleString()}</span>
-                            </div>
-                            <button onclick="window.addProgressToGoal(${m.id})" class="text-[9px] font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-3 py-1.5 rounded-xl transition-all">
-                                <i class="fa-solid fa-piggy-bank"></i> Ahorrar
-                            </button>
-                        </div>
-                        <div class="space-y-1">
-                            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(progress, 100)}%"></div>
-                            </div>
-                            <div class="flex justify-between items-center text-[10px] font-semibold">
-                                <span class="text-emerald-400">$${m.actual.toLocaleString()}</span>
-                                <span class="text-slate-500">${Math.round(progress)}%</span>
+                                <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(ratio, 100)}%"></div>
                             </div>
                         </div>
                     </div>
@@ -938,7 +1095,8 @@
 
             // Render Incomes tab list
             document.getElementById('ingresos-list').innerHTML = state.fuentesIngreso.map(i => `
-                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex justify-between items-center transition-all hover:border-slate-300">
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-3 transition-all hover:border-slate-300">
+                    <input type="text" onchange="window.updateSetting('fuentesIngreso', ${i.id}, 'emoji', this.value)" value="${i.emoji || '💰'}" class="w-10 p-1.5 bg-slate-100 border border-slate-200 rounded text-center text-sm outline-none flex-shrink-0">
                     <div class="flex-1">
                         <input type="text" onchange="window.updateSetting('fuentesIngreso', ${i.id}, 'nombre', this.value)" value="${i.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none w-full">
                         <div class="flex items-center gap-1.5 mt-1.5">
@@ -953,35 +1111,54 @@
             `).join('');
 
             // Populate Form Selectors
-            document.getElementById('concept-select').innerHTML = state.gastosFijos.map(f => `<option value="${f.nombre}">${f.emoji} ${f.nombre}</option>`).join('');
-            document.getElementById('target-card').innerHTML = state.tarjetas.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+            document.getElementById('concept-select').innerHTML = state.gastosFijos.map(f => `<option value="${f.id}">${f.emoji} ${f.nombre}</option>`).join('');
+            document.getElementById('target-card').innerHTML = state.tarjetas.map(t => `<option value="${t.id}">${t.emoji || '💳'} ${t.nombre}</option>`).join('');
+            document.getElementById('fuente-fondos').innerHTML = state.fuentesIngreso.map(i => `<option value="ingreso:${i.id}">${i.emoji || '💰'} ${i.nombre}</option>`).join('');
+            // Muestra de dónde se va a descontar el gasto seleccionado
+            const catSel = document.getElementById('concept-select');
+            if (catSel.value) {
+                const catSelected = state.gastosFijos.find(f => f.id === catSel.value);
+                const fSel = catSelected ? getFuentesPago().find(f => f.tipo === catSelected.fuenteTipo && f.id === catSelected.fuenteId) : null;
+                document.getElementById('concept-fuente-hint').innerText = fSel ? `Se descontará de: ${fSel.emoji} ${fSel.nombre}` : 'Este concepto no tiene fuente de pago asignada — configúrala en Presupuesto.';
+            }
 
             // Render detailed Category progress
-            document.getElementById('expenses-detail').innerHTML = state.gastosFijos.map(f => {
-                const ratio = f.tope > 0 ? (f.gastado / f.tope) * 100 : 0;
-                let gaugeColor = f.color || '#3b82f6';
-                if (ratio > 100) gaugeColor = '#f43f5e'; // Highlight overflow red
-
+            document.getElementById('presupuesto-table').innerHTML = state.gastosFijos.map(f => {
+                const sobregasto = f.gastado > f.tope;
+                const ahorrado = sobregasto ? 0 : (f.tope - f.gastado);
+                const fuente = getFuentesPago().find(x => x.tipo === f.fuenteTipo && x.id === f.fuenteId);
                 return `
-                    <div class="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl flex flex-col gap-2.5 shadow-sm">
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-2.5">
-                                <span class="text-xl">${f.emoji}</span>
-                                <div>
-                                    <h4 class="font-bold text-sm text-slate-800">${f.nombre}</h4>
-                                    <span class="text-[9px] text-slate-500 uppercase font-black">Límite: $${f.tope.toLocaleString()}</span>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-sm font-black text-slate-900">$${(f.gastado || 0).toLocaleString()}</span>
-                            </div>
-                        </div>
-                        <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-500" style="width: ${Math.min(ratio, 100)}%; background-color: ${gaugeColor}"></div>
-                        </div>
-                    </div>
+                    <tr class="border-t border-slate-100 ${sobregasto ? 'bg-rose-50' : ''}">
+                        <td class="p-3 font-bold text-slate-800">${f.emoji} ${f.nombre}</td>
+                        <td class="p-3 text-right text-slate-600">$${f.tope.toLocaleString()}</td>
+                        <td class="p-3 text-right font-black ${sobregasto ? 'text-rose-500' : 'text-slate-800'}">$${(f.gastado||0).toLocaleString()}</td>
+                        <td class="p-3 text-right font-black ${sobregasto ? 'text-rose-400' : 'text-emerald-500'}">${sobregasto ? '—' : '$' + ahorrado.toLocaleString()}</td>
+                        <td class="p-3 text-slate-600">${fuente ? fuente.emoji + ' ' + fuente.nombre : '—'}</td>
+                        <td class="p-3 text-right"><button onclick="window.switchTab('view-settings')" class="text-indigo-400 hover:underline text-[10px] font-bold">Editar</button></td>
+                    </tr>
                 `;
             }).join('');
+
+            // Paneles de desglose (ej. Comida: Carnes $1800, Merienda $1400...)
+            document.getElementById('desglose-panels').innerHTML = state.gastosFijos.map(f => `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-sm text-slate-800">${f.emoji} Desglose: ${f.nombre}</h4>
+                        <button onclick="window.promptAddDesglose('${f.id}')" class="text-[10px] font-bold text-indigo-400 hover:underline">+ Agregar</button>
+                    </div>
+                    <div class="space-y-1.5">
+                        ${(f.desglose || []).map(d => `
+                            <div class="flex justify-between items-center text-xs bg-white border border-slate-100 rounded-xl px-3 py-2">
+                                <span class="text-slate-700">${d.nombre}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-slate-800">$${d.monto.toLocaleString()}</span>
+                                    <button onclick="window.deleteDesglose('${f.id}', '${d.id}')" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                                </div>
+                            </div>
+                        `).join('') || `<p class="text-[10px] text-slate-400 px-1">Sin desglose — el gasto de esta categoría se registra directo desde el botón (+).</p>`}
+                    </div>
+                </div>
+            `).join('');
 
             // Render Recent Actions history
             document.getElementById('movimientos-list').innerHTML = (state.movimientos || []).slice(0, 8).map(m => `
@@ -1065,17 +1242,24 @@
 
             // Settings views - cards edition lists
             document.getElementById('settings-cards').innerHTML = state.tarjetas.map(t => `
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
-                    <div class="flex-1 space-y-1">
-                        <input type="text" onchange="window.updateSetting('tarjetas', ${t.id}, 'nombre', this.value)" value="${t.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none w-full">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Límite: $</span>
-                            <input type="number" onchange="window.updateSetting('tarjetas', ${t.id}, 'limite', this.value)" value="${t.limite}" class="bg-transparent text-xs text-indigo-400 font-black outline-none w-24">
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center gap-2">
+                        <input type="text" onchange="window.updateSetting('tarjetas', ${t.id}, 'emoji', this.value)" value="${t.emoji || '💳'}" class="w-10 p-1.5 bg-slate-100 border border-slate-200 rounded text-center text-sm outline-none flex-shrink-0">
+                        <input type="text" onchange="window.updateSetting('tarjetas', ${t.id}, 'nombre', this.value)" value="${t.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none flex-1">
+                        <button onclick="window.deleteItem('tarjetas', ${t.id})" class="text-slate-500 hover:text-rose-400 p-1 transition-colors">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Límite de crédito</span>
+                            <input type="number" onchange="window.updateSetting('tarjetas', ${t.id}, 'limite', this.value)" value="${t.limite}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Tope de gasto mensual</span>
+                            <input type="number" onchange="window.updateSetting('tarjetas', ${t.id}, 'tope', this.value)" value="${t.tope || t.limite}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-rose-400 font-black outline-none">
                         </div>
                     </div>
-                    <button onclick="window.deleteItem('tarjetas', ${t.id})" class="text-slate-500 hover:text-rose-400 p-2 transition-colors">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
                 </div>
             `).join('');
 
@@ -1093,12 +1277,15 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3 pt-1">
                         <div class="space-y-1">
-                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Presupuesto Límite</span>
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Cantidad destinada</span>
                             <input type="number" onchange="window.updateSetting('gastosFijos', '${c.id}', 'tope', this.value)" value="${c.tope}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">
                         </div>
                         <div class="space-y-1">
-                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Color Visual</span>
-                            <input type="color" onchange="window.updateSetting('gastosFijos', '${c.id}', 'color', this.value)" value="${c.color || '#6366f1'}" class="w-full h-9 bg-slate-100 border border-slate-200 rounded-xl cursor-pointer">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Pagado con</span>
+                            <select onchange="window.updateCategoriaFuente('${c.id}', this.value)" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-black outline-none">
+                                <option value="">— Sin asignar —</option>
+                                ${getFuentesPago().map(f => `<option value="${f.tipo}:${f.id}" ${c.fuenteTipo === f.tipo && c.fuenteId === f.id ? 'selected' : ''}>${f.emoji} ${f.nombre}</option>`).join('')}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -1111,6 +1298,7 @@
             originalUpdateUI();
             if (sheetsConnected) window.saveToSheets();
         };
+        window.updateUI = updateUI;
 
         // Initialize view states
         updateUI();
