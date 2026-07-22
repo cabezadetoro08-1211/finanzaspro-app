@@ -219,7 +219,7 @@
 
                     <div id="field-concepto" class="space-y-1">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Concepto del Presupuesto</label>
-                        <select id="concept-select" onchange="window.updateUI()" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
+                        <select id="concept-select" onchange="window.updateConceptHint()" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
                             <!-- Populated with gastosFijos -->
                         </select>
                         <p id="concept-fuente-hint" class="text-[10px] text-slate-400 ml-1"></p>
@@ -242,6 +242,11 @@
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto exacto ($)</label>
                         <input type="number" id="amount" placeholder="0.00" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-2xl text-indigo-400 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha del movimiento</label>
+                        <input type="date" id="movement-date" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
                     </div>
 
                     <button onclick="window.processAction()" class="w-full py-4.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
@@ -892,6 +897,37 @@
         };
 
 
+        // Actualiza solo el texto de ayuda (sin reconstruir el <select>, para no perder la selección del usuario)
+        window.updateConceptHint = () => {
+            const catSel = document.getElementById('concept-select');
+            const catSelected = state.gastosFijos.find(f => f.id === catSel.value);
+            const fSel = catSelected ? getFuentesPago().find(f => f.tipo === catSelected.fuenteTipo && f.id === catSelected.fuenteId) : null;
+            document.getElementById('concept-fuente-hint').innerText = fSel ? `Se descontará de: ${fSel.emoji} ${fSel.nombre}` : 'Este concepto no tiene fuente de pago asignada — configúrala en Presupuesto.';
+        };
+
+        // Borra un movimiento del historial y revierte su efecto en tarjetas/ingresos/presupuesto/préstamos
+        window.deleteMovimiento = (movId) => {
+            const m = state.movimientos.find(x => x.id === movId);
+            if (!m) return;
+            if (m.type === 'gasto') {
+                const cat = state.gastosFijos.find(c => c.id === m.catId);
+                if (cat) {
+                    cat.gastado = Math.max((cat.gastado || 0) - m.amount, 0);
+                    cat.desglose = (cat.desglose || []).filter(d => d.movId !== movId);
+                }
+                if (m.fuenteTipo && m.fuenteId != null) registrarGastoEnFuente(m.fuenteTipo, m.fuenteId, -m.amount);
+            } else if (m.type === 'pago') {
+                if (m.targetCardId) {
+                    const card = state.tarjetas.find(t => t.id === m.targetCardId);
+                    if (card) card.gastado = (card.gastado || 0) + m.amount;
+                }
+                if (m.fuenteTipo && m.fuenteId != null) registrarGastoEnFuente(m.fuenteTipo, m.fuenteId, -m.amount);
+            }
+            state.movimientos = state.movimientos.filter(x => x.id !== movId);
+            updateUI();
+        };
+
+
         window.toggleAddFields = () => {
             const type = document.getElementById('type').value;
             document.getElementById('field-concepto').classList.toggle('hidden', type !== 'gasto');
@@ -902,6 +938,8 @@
         window.processAction = () => {
             const type = document.getElementById('type').value;
             const amount = parseFloat(document.getElementById('amount').value);
+            const dateInput = document.getElementById('movement-date').value;
+            const fecha = dateInput ? new Date(dateInput + 'T12:00:00').toISOString() : new Date().toISOString();
 
             if (!amount || isNaN(amount) || amount <= 0) {
                 return window.showAlert("Atención", "Por favor ingresa un monto válido superior a 0.", "fa-solid fa-triangle-exclamation text-amber-500");
@@ -918,11 +956,16 @@
                     window.showAlert("Límite Superado 🚨", `¡Alerta! Tu gasto en "${cat.nombre}" ha superado lo destinado de $${cat.tope.toLocaleString()}.`, "fa-solid fa-triangle-exclamation text-rose-500");
                 }
                 const fuente = getFuentesPago().find(f => f.tipo === cat.fuenteTipo && f.id === cat.fuenteId);
+                const movId = Date.now();
+                // Se agrega también al desglose de la categoría, para que quede visible y editable ahí
+                if (!cat.desglose) cat.desglose = [];
+                cat.desglose.push({ id: 'd' + movId, nombre: `Gasto ${new Date(fecha).toLocaleDateString()}`, monto: amount, movId });
                 state.movimientos.unshift({
-                    id: Date.now(), concept: cat.nombre, amount, type: 'gasto',
-                    date: new Date().toISOString(), card: fuente ? fuente.nombre : '—', emoji: cat.emoji
+                    id: movId, concept: cat.nombre, amount, type: 'gasto', catId: cat.id,
+                    fuenteTipo: cat.fuenteTipo, fuenteId: cat.fuenteId,
+                    date: fecha, card: fuente ? fuente.nombre : '—', emoji: cat.emoji
                 });
-            } else {
+            } else if (type === 'pago') {
                 // Pago de tarjeta: se debita de una fuente de fondos (salario/ingreso extra) y reduce lo gastado de la tarjeta
                 const targetId = parseInt(document.getElementById('target-card').value);
                 const fuenteVal = document.getElementById('fuente-fondos').value;
@@ -935,8 +978,9 @@
                 registrarGastoEnFuente(fuenteTipo, fuenteId, amount);
                 const fuente = getFuentesPago().find(f => f.tipo === fuenteTipo && f.id === fuenteId);
                 state.movimientos.unshift({
-                    id: Date.now(), concept: `Pago a ${card.nombre}`, amount, type: 'pago',
-                    date: new Date().toISOString(), card: fuente ? fuente.nombre : '—', emoji: '🏦'
+                    id: Date.now(), concept: `Pago a ${card.nombre}`, amount, type: 'pago', targetCardId: card.id,
+                    fuenteTipo, fuenteId,
+                    date: fecha, card: fuente ? fuente.nombre : '—', emoji: '🏦'
                 });
             }
 
@@ -1161,7 +1205,7 @@
             `).join('');
 
             // Render Recent Actions history
-            document.getElementById('movimientos-list').innerHTML = (state.movimientos || []).slice(0, 8).map(m => `
+            document.getElementById('movimientos-list').innerHTML = (state.movimientos || []).slice(0, 20).map(m => `
                 <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl">
                     <div class="flex items-center gap-3">
                         <span class="text-lg">${m.emoji || '💸'}</span>
@@ -1170,11 +1214,14 @@
                             <p class="text-[9px] text-slate-500 uppercase font-black mt-0.5">${m.card} • ${new Date(m.date).toLocaleDateString()}</p>
                         </div>
                     </div>
-                    <p class="font-black text-xs ${m.type === 'gasto' ? 'text-rose-400' : 'text-emerald-400'}">
-                        ${m.type === 'gasto' ? '-' : '+'}$${m.amount.toLocaleString()}
-                    </p>
+                    <div class="flex items-center gap-2">
+                        <p class="font-black text-xs ${m.type === 'gasto' ? 'text-rose-400' : 'text-emerald-400'}">
+                            ${m.type === 'gasto' ? '-' : '+'}$${m.amount.toLocaleString()}
+                        </p>
+                        <button onclick="window.deleteMovimiento(${m.id})" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    </div>
                 </div>
-            `).join('');
+            `).join('') || '<p class="text-xs text-slate-400 px-1">Aún no has registrado movimientos.</p>';
 
             // Reminders sorted by proximity
             const sortedReminders = [...state.recordatorios].sort((a, b) => daysUntil(a.dia) - daysUntil(b.dia));
@@ -1302,6 +1349,9 @@
 
         // Initialize view states
         updateUI();
+        // La fecha del formulario de registro empieza siempre en "hoy"
+        const movDateInput = document.getElementById('movement-date');
+        if (movDateInput) movDateInput.value = new Date().toISOString().split('T')[0];
 
         // Ocultar pantalla de bienvenida una vez que todo está listo
         setTimeout(() => {
