@@ -148,6 +148,17 @@
                     </div>
                 </div>
 
+                <!-- Préstamos (solo exhibición) -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Préstamos</h3>
+                        <span class="text-[10px] text-slate-500">Saldo pendiente</span>
+                    </div>
+                    <div id="prestamos-list" class="space-y-2.5">
+                        <!-- Dynamic list generated in JS -->
+                    </div>
+                </div>
+
                 <!-- Ingresos Extra (solo exhibición) -->
                 <div class="space-y-3">
                     <div class="flex justify-between items-center px-1">
@@ -214,6 +225,7 @@
                         <select id="type" onchange="window.toggleAddFields()" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
                             <option value="gasto">💸 Registrar un Gasto (de Presupuesto)</option>
                             <option value="pago">🏦 Pago de Tarjeta</option>
+                            <option value="pago_prestamo">🏛️ Pago de Préstamo</option>
                         </select>
                     </div>
 
@@ -229,6 +241,13 @@
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tarjeta a Pagar</label>
                         <select id="target-card" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
                             <!-- Populated with credit cards -->
+                        </select>
+                    </div>
+
+                    <div id="field-prestamo-pagar" class="space-y-1 hidden">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Préstamo a Pagar</label>
+                        <select id="target-prestamo" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
+                            <!-- Populated with prestamos -->
                         </select>
                     </div>
 
@@ -330,6 +349,9 @@
                     <button onclick="window.confirmarCierreCiclo()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
                         <i class="fa-solid fa-rotate"></i> Cerrar ciclo y reiniciar cálculos
                     </button>
+                    <button onclick="window.descargarInforme()" class="w-full py-2.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
+                        <i class="fa-solid fa-file-arrow-down"></i> Descargar informe del ciclo
+                    </button>
                     <p class="text-[9px] text-slate-400 leading-relaxed">Al cerrar el ciclo: el ahorro de este período se suma a tu ahorro acumulado, y el gasto de tarjetas, ingresos y presupuesto vuelve a $0 para empezar el nuevo ciclo. El historial de movimientos no se borra.</p>
                 </div>
 
@@ -352,6 +374,17 @@
                     </div>
                     <div id="settings-cards" class="space-y-2.5">
                         <!-- Interactive list for editing banks -->
+                    </div>
+                </div>
+
+                <!-- Prestamos Editing Section -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Editar Préstamos</h3>
+                        <button onclick="window.promptAddPrestamo()" class="text-xs font-bold text-indigo-400 hover:underline">+ Nuevo Préstamo</button>
+                    </div>
+                    <div id="settings-prestamos" class="space-y-2.5">
+                        <!-- Interactive list for editing loans -->
                     </div>
                 </div>
 
@@ -472,6 +505,9 @@
                 { id: 2, tipo: 'pago', nombre: 'Visa Principal', dia: 5, monto: 3000, tarjetaId: 1 },
                 { id: 3, tipo: 'servicio', nombre: 'Internet Claro', dia: 10, monto: 1800, tarjetaId: null }
             ],
+            prestamos: [
+                { id: 1, nombre: "Préstamo Personal", saldo: 45000, cuota: 3500, diaPago: 15, emoji: "🏛️" }
+            ],
             cicloInicio: 25, // día del mes en que empieza tu ciclo financiero (ej. día que te pagan)
             ahorroAcumulado: 0 // se va sumando cada vez que cierras un ciclo
         };
@@ -530,6 +566,20 @@
 
         // Custom Prompt Manager
         let currentPromptCallback = null;
+        // Catálogo de íconos curados, agrupados por categoría (se usa en el selector visual)
+        const EMOJI_CATALOG = {
+            'Dinero': ['💰','💳','🏦','💼','💵','📈','📉','🪙','🧾','💸'],
+            'Comida': ['🌮','🍔','🍕','🍿','🥗','🍞','🍎','🥩','☕','🍽️'],
+            'Transporte': ['🚗','🚕','🚌','⛽','🚲','✈️','🛵','🚆'],
+            'Hogar y servicios': ['💡','💧','📶','🔥','🏠','🛋️','🧹','📺'],
+            'Compras y estilo': ['👗','👟','💄','✂️','👜','🛍️'],
+            'Salud y bienestar': ['💊','🏥','🦷','🏋️','🧴'],
+            'Educación': ['📚','🎓','✏️','💡'],
+            'Ocio y viajes': ['🎬','🎮','🎧','🎫','🧳','🗺️','🐾'],
+            'Familia': ['👶','🧸','👨‍👩‍👧','🎂'],
+            'Deudas y préstamos': ['🏛️','📄','🤝','⚖️']
+        };
+
         window.openPrompt = (title, fields, callback) => {
             document.getElementById('prompt-title').innerText = title;
             const container = document.getElementById('prompt-fields');
@@ -545,6 +595,14 @@
                             ${f.options.map(o => `<option value="${o.value}" ${o.value == f.value ? 'selected' : ''}>${o.label}</option>`).join('')}
                         </select>
                     `;
+                } else if (f.type === 'emoji-picker') {
+                    const initial = f.value || '💰';
+                    grp.innerHTML = `
+                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">${f.label}</label>
+                        <input type="hidden" id="prompt-input-${f.id}" value="${initial}">
+                        <button type="button" onclick="window.toggleEmojiGrid('${f.id}')" id="prompt-emoji-btn-${f.id}" class="w-16 h-16 flex items-center justify-center text-3xl bg-slate-100 border border-slate-200 rounded-xl outline-none">${initial}</button>
+                        <div id="prompt-emoji-grid-${f.id}" class="hidden mt-2 max-h-52 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2"></div>
+                    `;
                 } else {
                     grp.innerHTML = `
                         <label class="text-[10px] font-black text-slate-500 uppercase ml-1">${f.label}</label>
@@ -558,6 +616,29 @@
             document.getElementById('prompt-modal').classList.add('flex');
             
             currentPromptCallback = callback;
+        };
+
+        // Abre/cierra el grid de íconos para un campo tipo emoji-picker
+        window.toggleEmojiGrid = (fieldId) => {
+            const grid = document.getElementById('prompt-emoji-grid-' + fieldId);
+            if (grid.classList.contains('hidden')) {
+                grid.innerHTML = Object.entries(EMOJI_CATALOG).map(([cat, emojis]) => `
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-1">${cat}</p>
+                        <div class="grid grid-cols-8 gap-1">
+                            ${emojis.map(e => `<button type="button" onclick="window.pickEmoji('${fieldId}','${e}')" class="text-xl p-1 rounded hover:bg-slate-200">${e}</button>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+                grid.classList.remove('hidden');
+            } else {
+                grid.classList.add('hidden');
+            }
+        };
+        window.pickEmoji = (fieldId, emoji) => {
+            document.getElementById('prompt-input-' + fieldId).value = emoji;
+            document.getElementById('prompt-emoji-btn-' + fieldId).innerText = emoji;
+            document.getElementById('prompt-emoji-grid-' + fieldId).classList.add('hidden');
         };
 
         window.closePrompt = () => {
@@ -666,7 +747,7 @@
                 ]},
                 { id: 'nombre', label: 'Nombre / Detalle', type: 'text', placeholder: 'Ej. Renta de local' },
                 { id: 'monto', label: 'Monto Mensual ($)', type: 'number', placeholder: '0.00' },
-                { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '💼' }
+                { id: 'emoji', label: 'Emoji Identificador', type: 'emoji-picker', value: '💼' }
             ], (inputs) => {
                 const nombre = inputs.nombre;
                 const monto = parseFloat(inputs.monto);
@@ -684,13 +765,37 @@
                 { id: 'nombre', label: 'Nombre de la Tarjeta', type: 'text', placeholder: 'Ej. Mastercard Oro' },
                 { id: 'limite', label: 'Límite de Crédito ($)', type: 'number', placeholder: '0.00' },
                 { id: 'tope', label: 'Tope de gasto mensual que TE pones ($)', type: 'number', placeholder: '0.00' },
-                { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '💳' }
+                { id: 'diaCorte', label: 'Día de corte (1-31, opcional)', type: 'number', placeholder: '25' },
+                { id: 'diaPago', label: 'Día límite de pago (1-31, opcional)', type: 'number', placeholder: '5' },
+                { id: 'emoji', label: 'Emoji Identificador', type: 'emoji-picker', value: '💳' }
             ], (inputs) => {
                 const nombre = inputs.nombre;
                 const limite = parseFloat(inputs.limite);
                 const tope = parseFloat(inputs.tope) || limite;
+                const diaCorte = parseInt(inputs.diaCorte) || null;
+                const diaPago = parseInt(inputs.diaPago) || null;
                 if (nombre && !isNaN(limite)) {
-                    state.tarjetas.push({ id: Date.now(), nombre, limite, tope, gastado: 0, emoji: inputs.emoji || '💳' });
+                    state.tarjetas.push({ id: Date.now(), nombre, limite, tope, gastado: 0, emoji: inputs.emoji || '💳', diaCorte, diaPago });
+                    updateUI();
+                }
+            });
+        };
+
+        // Manage Settings - Loans addition
+        window.promptAddPrestamo = () => {
+            window.openPrompt("Nuevo Préstamo", [
+                { id: 'nombre', label: 'Nombre del Préstamo', type: 'text', placeholder: 'Ej. Préstamo Personal' },
+                { id: 'saldo', label: 'Saldo pendiente ($)', type: 'number', placeholder: '0.00' },
+                { id: 'cuota', label: 'Cuota mensual ($)', type: 'number', placeholder: '0.00' },
+                { id: 'diaPago', label: 'Día límite de pago (1-31, opcional)', type: 'number', placeholder: '15' },
+                { id: 'emoji', label: 'Emoji Identificador', type: 'emoji-picker', value: '🏛️' }
+            ], (inputs) => {
+                const nombre = inputs.nombre;
+                const saldo = parseFloat(inputs.saldo);
+                const cuota = parseFloat(inputs.cuota) || 0;
+                const diaPago = parseInt(inputs.diaPago) || null;
+                if (nombre && !isNaN(saldo)) {
+                    state.prestamos.push({ id: Date.now(), nombre, saldo, cuota, diaPago, emoji: inputs.emoji || '🏛️' });
                     updateUI();
                 }
             });
@@ -703,7 +808,7 @@
                 { id: 'nombre', label: 'Concepto', type: 'text', placeholder: 'Ej. Gasolina' },
                 { id: 'tope', label: 'Cantidad Destinada ($)', type: 'number', placeholder: '0.00' },
                 { id: 'fuente', label: 'Pagado con', type: 'select', value: fuentes[0] ? `${fuentes[0].tipo}:${fuentes[0].id}` : '', options: fuentes.map(f => ({ value: `${f.tipo}:${f.id}`, label: `${f.emoji} ${f.nombre}` })) },
-                { id: 'emoji', label: 'Emoji Identificador', type: 'text', placeholder: '🚗' }
+                { id: 'emoji', label: 'Emoji Identificador', type: 'emoji-picker', value: '💰' }
             ], (inputs) => {
                 const nombre = inputs.nombre;
                 const tope = parseFloat(inputs.tope);
@@ -781,6 +886,44 @@
             return 'fa-file-invoice-dollar';
         }
 
+        // Crea/actualiza solos los recordatorios de corte y pago de cada tarjeta que tenga esas fechas configuradas.
+        // Si quitas la fecha de una tarjeta, su recordatorio automático correspondiente se elimina.
+        function syncRecordatoriosAutomaticos() {
+            state.tarjetas.forEach(t => {
+                // Recordatorio de CORTE
+                let rCorte = state.recordatorios.find(r => r.auto && r.entidad === 'tarjeta' && r.tarjetaId === t.id && r.tipo === 'corte');
+                if (t.diaCorte) {
+                    if (!rCorte) { rCorte = { id: 'auto-corte-tarjeta-' + t.id, tipo: 'corte', auto: true, entidad: 'tarjeta', tarjetaId: t.id }; state.recordatorios.push(rCorte); }
+                    rCorte.nombre = t.nombre;
+                    rCorte.dia = t.diaCorte;
+                    rCorte.monto = null;
+                } else if (rCorte) {
+                    state.recordatorios = state.recordatorios.filter(r => r !== rCorte);
+                }
+                // Recordatorio de PAGO (el monto se actualiza solo, según lo que debas en ese momento)
+                let rPago = state.recordatorios.find(r => r.auto && r.entidad === 'tarjeta' && r.tarjetaId === t.id && r.tipo === 'pago');
+                if (t.diaPago) {
+                    if (!rPago) { rPago = { id: 'auto-pago-tarjeta-' + t.id, tipo: 'pago', auto: true, entidad: 'tarjeta', tarjetaId: t.id }; state.recordatorios.push(rPago); }
+                    rPago.nombre = t.nombre;
+                    rPago.dia = t.diaPago;
+                    rPago.monto = t.gastado || 0;
+                } else if (rPago) {
+                    state.recordatorios = state.recordatorios.filter(r => r !== rPago);
+                }
+            });
+            (state.prestamos || []).forEach(p => {
+                let rPago = state.recordatorios.find(r => r.auto && r.entidad === 'prestamo' && r.tarjetaId === p.id && r.tipo === 'pago');
+                if (p.diaPago) {
+                    if (!rPago) { rPago = { id: 'auto-pago-prestamo-' + p.id, tipo: 'pago', auto: true, entidad: 'prestamo', tarjetaId: p.id }; state.recordatorios.push(rPago); }
+                    rPago.nombre = p.nombre + ' (Préstamo)';
+                    rPago.dia = p.diaPago;
+                    rPago.monto = p.cuota || p.saldo || 0;
+                } else if (rPago) {
+                    state.recordatorios = state.recordatorios.filter(r => r !== rPago);
+                }
+            });
+        }
+
         // Reminders: add new
         window.promptAddReminder = () => {
             window.openPrompt("Nuevo Recordatorio", [
@@ -808,7 +951,7 @@
 
         // Reminders: export as .ics calendar file with monthly repeat + alarm
         window.exportReminderICS = (id) => {
-            const r = state.recordatorios.find(x => x.id === id);
+            const r = state.recordatorios.find(x => x.id == id);
             if (!r) return;
             const start = nextOccurrence(r.dia);
             const y = start.getFullYear();
@@ -855,8 +998,10 @@
             if(item) {
                 if (field === 'tarjetaId') {
                     item[field] = value ? parseInt(value) : null;
+                } else if (field === 'diaCorte' || field === 'diaPago') {
+                    item[field] = value ? (parseInt(value) || null) : null;
                 } else {
-                    item[field] = (field === 'monto' || field === 'limite' || field === 'tope' || field === 'gastado' || field === 'dia') ? parseFloat(value) || 0 : value;
+                    item[field] = (field === 'monto' || field === 'limite' || field === 'tope' || field === 'gastado' || field === 'dia' || field === 'saldo' || field === 'cuota') ? parseFloat(value) || 0 : value;
                 }
                 updateUI();
             }
@@ -896,6 +1041,52 @@
             });
         };
 
+        // Genera y descarga un informe de texto con el resumen completo del ciclo actual
+        window.descargarInforme = () => {
+            const salarioTotal = state.fuentesIngreso.filter(i => i.tipo === 'salario').reduce((s, i) => s + (i.monto || 0), 0);
+            const extra = state.fuentesIngreso.filter(i => i.tipo !== 'salario');
+            const totalExtra = extra.reduce((s, i) => s + (i.monto || 0), 0);
+            const totalIncome = salarioTotal + totalExtra;
+            const ahorroTarjetas = state.tarjetas.reduce((s, t) => { const tope = t.tope || t.limite; return s + (t.gastado <= tope ? (tope - t.gastado) : 0); }, 0);
+            const ahorroIngresos = state.fuentesIngreso.reduce((s, i) => s + ((i.gastado || 0) <= i.monto ? (i.monto - (i.gastado || 0)) : 0), 0);
+
+            let lines = [];
+            lines.push('FINANZASPRO — INFORME DEL CICLO');
+            lines.push('Ciclo: ' + cicloLabel());
+            lines.push('Generado: ' + new Date().toLocaleString());
+            lines.push('');
+            lines.push('=== INGRESOS ===');
+            state.fuentesIngreso.forEach(i => lines.push(`${i.nombre} (${i.tipo === 'salario' ? 'Salario' : 'Extra'}): $${i.monto.toLocaleString()} — gastado: $${(i.gastado || 0).toLocaleString()}`));
+            lines.push(`TOTAL INGRESOS: $${totalIncome.toLocaleString()}`);
+            lines.push('');
+            lines.push('=== TARJETAS ===');
+            state.tarjetas.forEach(t => lines.push(`${t.nombre}: gastado $${(t.gastado || 0).toLocaleString()} de tope $${(t.tope || t.limite).toLocaleString()} (límite total $${t.limite.toLocaleString()})`));
+            lines.push('');
+            lines.push('=== PRÉSTAMOS ===');
+            state.prestamos.forEach(p => lines.push(`${p.nombre}: saldo pendiente $${(p.saldo || 0).toLocaleString()}, cuota $${(p.cuota || 0).toLocaleString()}`));
+            lines.push('');
+            lines.push('=== PRESUPUESTO ===');
+            state.gastosFijos.forEach(f => {
+                const sobre = f.gastado > f.tope;
+                lines.push(`${f.nombre}: destinado $${f.tope.toLocaleString()}, gastado $${(f.gastado || 0).toLocaleString()}${sobre ? ' [EXCEDIDO]' : ', ahorrado $' + (f.tope - f.gastado).toLocaleString()}`);
+            });
+            lines.push('');
+            lines.push('=== AHORRO ===');
+            lines.push(`Ahorro este ciclo: $${(ahorroTarjetas + ahorroIngresos).toLocaleString()}`);
+            lines.push(`Ahorro acumulado (ciclos anteriores): $${(state.ahorroAcumulado || 0).toLocaleString()}`);
+            lines.push('');
+            lines.push('=== HISTORIAL DE MOVIMIENTOS ===');
+            state.movimientos.forEach(m => lines.push(`${new Date(m.date).toLocaleDateString()} — ${m.concept} — ${m.type === 'gasto' ? '-' : '+'}$${m.amount.toLocaleString()} (${m.card})`));
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `informe-finanzaspro-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
 
         // Actualiza solo el texto de ayuda (sin reconstruir el <select>, para no perder la selección del usuario)
         window.updateConceptHint = () => {
@@ -921,6 +1112,10 @@
                     const card = state.tarjetas.find(t => t.id === m.targetCardId);
                     if (card) card.gastado = (card.gastado || 0) + m.amount;
                 }
+                if (m.targetPrestamoId) {
+                    const p = state.prestamos.find(x => x.id === m.targetPrestamoId);
+                    if (p) p.saldo = (p.saldo || 0) + m.amount;
+                }
                 if (m.fuenteTipo && m.fuenteId != null) registrarGastoEnFuente(m.fuenteTipo, m.fuenteId, -m.amount);
             }
             state.movimientos = state.movimientos.filter(x => x.id !== movId);
@@ -932,7 +1127,8 @@
             const type = document.getElementById('type').value;
             document.getElementById('field-concepto').classList.toggle('hidden', type !== 'gasto');
             document.getElementById('field-tarjeta-pagar').classList.toggle('hidden', type !== 'pago');
-            document.getElementById('field-fuente-fondos').classList.toggle('hidden', type !== 'pago');
+            document.getElementById('field-prestamo-pagar').classList.toggle('hidden', type !== 'pago_prestamo');
+            document.getElementById('field-fuente-fondos').classList.toggle('hidden', type !== 'pago' && type !== 'pago_prestamo');
         };
 
         window.processAction = () => {
@@ -982,6 +1178,23 @@
                     fuenteTipo, fuenteId,
                     date: fecha, card: fuente ? fuente.nombre : '—', emoji: '🏦'
                 });
+            } else if (type === 'pago_prestamo') {
+                // Pago de préstamo: se debita de una fuente de fondos y reduce el saldo pendiente del préstamo
+                const targetId = parseInt(document.getElementById('target-prestamo').value);
+                const fuenteVal = document.getElementById('fuente-fondos').value;
+                const [fuenteTipo, fuenteIdRaw] = fuenteVal.split(':');
+                const fuenteId = parseInt(fuenteIdRaw);
+                const prestamo = state.prestamos.find(p => p.id === targetId);
+                if (!prestamo) return window.showAlert("Atención", "No has configurado ningún préstamo aún.", "fa-solid fa-building-columns text-rose-500");
+
+                prestamo.saldo = Math.max((prestamo.saldo || 0) - amount, 0);
+                registrarGastoEnFuente(fuenteTipo, fuenteId, amount);
+                const fuente = getFuentesPago().find(f => f.tipo === fuenteTipo && f.id === fuenteId);
+                state.movimientos.unshift({
+                    id: Date.now(), concept: `Pago a préstamo: ${prestamo.nombre}`, amount, type: 'pago', targetPrestamoId: prestamo.id,
+                    fuenteTipo, fuenteId,
+                    date: fecha, card: fuente ? fuente.nombre : '—', emoji: '🏛️'
+                });
             }
 
             updateUI();
@@ -1030,23 +1243,24 @@
 
         window.loadFromSheets = async () => {
             try {
-                const ranges = ['Tarjetas!A1:F100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:H100'];
+                const ranges = ['Tarjetas!A1:H100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:H100', 'Prestamos!A1:F100'];
                 const res = await gapi.client.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
                     ranges
                 });
-                const [tarjetasR, ingresosR, recordatoriosR, categoriasR] = res.result.valueRanges.map(v => v.values);
+                const [tarjetasR, ingresosR, recordatoriosR, categoriasR, prestamosR] = res.result.valueRanges.map(v => v.values);
 
-                state.tarjetas = rowsToObjects(tarjetasR, [{name:'id',num:true},{name:'nombre'},{name:'limite',num:true},{name:'tope',num:true},{name:'gastado',num:true},{name:'emoji'}]);
+                state.tarjetas = rowsToObjects(tarjetasR, [{name:'id',num:true},{name:'nombre'},{name:'limite',num:true},{name:'tope',num:true},{name:'gastado',num:true},{name:'emoji'},{name:'diaCorte',num:true,nullable:true},{name:'diaPago',num:true,nullable:true}]);
                 state.fuentesIngreso = rowsToObjects(ingresosR, [{name:'id',num:true},{name:'nombre'},{name:'monto',num:true},{name:'tipo'},{name:'emoji'},{name:'gastado',num:true}]);
                 state.recordatorios = rowsToObjects(recordatoriosR, [{name:'id',num:true},{name:'tipo'},{name:'nombre'},{name:'dia',num:true},{name:'monto',num:true,nullable:true},{name:'tarjetaId',num:true,nullable:true}]);
                 state.gastosFijos = rowsToObjects(categoriasR, [{name:'id'},{name:'nombre'},{name:'tope',num:true},{name:'gastado',num:true},{name:'fuenteTipo'},{name:'fuenteId',num:true,nullable:true},{name:'emoji'},{name:'color'}]);
                 state.gastosFijos.forEach(f => { if (!f.desglose) f.desglose = []; });
+                state.prestamos = rowsToObjects(prestamosR, [{name:'id',num:true},{name:'nombre'},{name:'saldo',num:true},{name:'cuota',num:true},{name:'diaPago',num:true,nullable:true},{name:'emoji'}]);
 
                 updateUI();
                 window.showAlert("Sincronizado ✅", "Tus datos reales de Google Sheets ya están cargados en la app.", "fa-solid fa-check text-emerald-400");
             } catch (err) {
-                window.showAlert("Error al leer el Sheet", "Revisa que las pestañas se llamen exactamente: Tarjetas, Ingresos, Recordatorios, Categorias (sin tilde), y que tengan las columnas correctas. Detalle: " + (err.result ? err.result.error.message : err.message), "fa-solid fa-triangle-exclamation text-rose-500");
+                window.showAlert("Error al leer el Sheet", "Revisa que las pestañas se llamen exactamente: Tarjetas, Ingresos, Recordatorios, Categorias (sin tilde), Prestamos, y que tengan las columnas correctas. Detalle: " + (err.result ? err.result.error.message : err.message), "fa-solid fa-triangle-exclamation text-rose-500");
             }
         };
 
@@ -1060,10 +1274,11 @@
             if (!sheetsConnected) return;
             try {
                 const data = [
-                    { range: 'Tarjetas!A1:F100', values: objectsToRows(state.tarjetas, ['id','nombre','limite','tope','gastado','emoji']) },
+                    { range: 'Tarjetas!A1:H100', values: objectsToRows(state.tarjetas, ['id','nombre','limite','tope','gastado','emoji','diaCorte','diaPago']) },
                     { range: 'Ingresos!A1:F100', values: objectsToRows(state.fuentesIngreso, ['id','nombre','monto','tipo','emoji','gastado']) },
-                    { range: 'Recordatorios!A1:F100', values: objectsToRows(state.recordatorios, ['id','tipo','nombre','dia','monto','tarjetaId']) },
-                    { range: 'Categorias!A1:H100', values: objectsToRows(state.gastosFijos, ['id','nombre','tope','gastado','fuenteTipo','fuenteId','emoji','color']) }
+                    { range: 'Recordatorios!A1:F100', values: objectsToRows(state.recordatorios.filter(r => !r.auto), ['id','tipo','nombre','dia','monto','tarjetaId']) },
+                    { range: 'Categorias!A1:H100', values: objectsToRows(state.gastosFijos, ['id','nombre','tope','gastado','fuenteTipo','fuenteId','emoji','color']) },
+                    { range: 'Prestamos!A1:F100', values: objectsToRows(state.prestamos, ['id','nombre','saldo','cuota','diaPago','emoji']) }
                 ];
                 await gapi.client.sheets.spreadsheets.values.batchUpdate({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
@@ -1137,6 +1352,20 @@
                 `;
             }).join('');
 
+            // Render Loans (solo exhibición en Cartera)
+            document.getElementById('prestamos-list').innerHTML = state.prestamos.map(p => `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex justify-between items-center">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">${p.emoji || '🏛️'} ${p.nombre}</span>
+                        <p class="text-lg font-black text-rose-500">$${(p.saldo || 0).toLocaleString()}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-500 font-bold block">Cuota: $${(p.cuota || 0).toLocaleString()}/mes</span>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-xs text-slate-400 px-1">No tienes préstamos registrados.</p>';
+
+
             // Render Incomes tab list
             document.getElementById('ingresos-list').innerHTML = state.fuentesIngreso.map(i => `
                 <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-3 transition-all hover:border-slate-300">
@@ -1157,6 +1386,7 @@
             // Populate Form Selectors
             document.getElementById('concept-select').innerHTML = state.gastosFijos.map(f => `<option value="${f.id}">${f.emoji} ${f.nombre}</option>`).join('');
             document.getElementById('target-card').innerHTML = state.tarjetas.map(t => `<option value="${t.id}">${t.emoji || '💳'} ${t.nombre}</option>`).join('');
+            document.getElementById('target-prestamo').innerHTML = state.prestamos.map(p => `<option value="${p.id}">${p.emoji || '🏛️'} ${p.nombre}</option>`).join('');
             document.getElementById('fuente-fondos').innerHTML = state.fuentesIngreso.map(i => `<option value="ingreso:${i.id}">${i.emoji || '💰'} ${i.nombre}</option>`).join('');
             // Muestra de dónde se va a descontar el gasto seleccionado
             const catSel = document.getElementById('concept-select');
@@ -1224,6 +1454,7 @@
             `).join('') || '<p class="text-xs text-slate-400 px-1">Aún no has registrado movimientos.</p>';
 
             // Reminders sorted by proximity
+            syncRecordatoriosAutomaticos();
             const sortedReminders = [...state.recordatorios].sort((a, b) => daysUntil(a.dia) - daysUntil(b.dia));
 
             function reminderCardHTML(r, compact) {
@@ -1263,25 +1494,35 @@
                         <div class="flex-1 space-y-1">
                             <div class="flex items-center gap-2">
                                 <i class="fa-solid ${tipoIcon(r.tipo)} text-indigo-400 text-xs"></i>
-                                <input type="text" onchange="window.updateSetting('recordatorios', ${r.id}, 'nombre', this.value)" value="${r.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none flex-1">
+                                ${r.auto
+                                    ? `<span class="font-bold text-sm text-slate-800">${r.nombre}</span>`
+                                    : `<input type="text" onchange="window.updateSetting('recordatorios', '${r.id}', 'nombre', this.value)" value="${r.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none flex-1">`
+                                }
                             </div>
-                            <span class="text-[9px] text-slate-500 uppercase font-black block">${tipoLabel(r.tipo)}</span>
+                            <span class="text-[9px] text-slate-500 uppercase font-black block">${tipoLabel(r.tipo)}${r.auto ? ' · automático (se controla desde la tarjeta)' : ''}</span>
                         </div>
-                        <button onclick="window.deleteItem('recordatorios', ${r.id})" class="text-slate-500 hover:text-rose-400 p-1 transition-colors">
+                        ${r.auto ? '' : `
+                        <button onclick="window.deleteItem('recordatorios', '${r.id}')" class="text-slate-500 hover:text-rose-400 p-1 transition-colors">
                             <i class="fa-solid fa-trash text-xs"></i>
-                        </button>
+                        </button>`}
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Día del mes</span>
-                            <input type="number" min="1" max="31" onchange="window.updateSetting('recordatorios', ${r.id}, 'dia', this.value)" value="${r.dia}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">
+                            ${r.auto
+                                ? `<div class="w-full bg-slate-200 rounded-xl p-2.5 text-xs text-slate-600 font-black">${r.dia}</div>`
+                                : `<input type="number" min="1" max="31" onchange="window.updateSetting('recordatorios', '${r.id}', 'dia', this.value)" value="${r.dia}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">`
+                            }
                         </div>
                         <div class="space-y-1">
                             <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Monto aprox.</span>
-                            <input type="number" onchange="window.updateSetting('recordatorios', ${r.id}, 'monto', this.value)" value="${r.monto || ''}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-black outline-none">
+                            ${r.auto
+                                ? `<div class="w-full bg-slate-200 rounded-xl p-2.5 text-xs text-slate-600 font-black">${r.monto ? '$' + r.monto.toLocaleString() : '—'}</div>`
+                                : `<input type="number" onchange="window.updateSetting('recordatorios', '${r.id}', 'monto', this.value)" value="${r.monto || ''}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-black outline-none">`
+                            }
                         </div>
                     </div>
-                    <button onclick="window.exportReminderICS(${r.id})" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-[10px] font-black uppercase text-indigo-300 tracking-wider transition-all">
+                    <button onclick="window.exportReminderICS('${r.id}')" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-[10px] font-black uppercase text-indigo-300 tracking-wider transition-all">
                         <i class="fa-solid fa-calendar-plus"></i> Descargar recordatorio (.ics)
                     </button>
                 </div>
@@ -1306,9 +1547,45 @@
                             <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Tope de gasto mensual</span>
                             <input type="number" onchange="window.updateSetting('tarjetas', ${t.id}, 'tope', this.value)" value="${t.tope || t.limite}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-rose-400 font-black outline-none">
                         </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Día de corte</span>
+                            <input type="number" min="1" max="31" onchange="window.updateSetting('tarjetas', ${t.id}, 'diaCorte', this.value)" value="${t.diaCorte || ''}" placeholder="Ej. 25" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-black outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Día límite de pago</span>
+                            <input type="number" min="1" max="31" onchange="window.updateSetting('tarjetas', ${t.id}, 'diaPago', this.value)" value="${t.diaPago || ''}" placeholder="Ej. 5" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-black outline-none">
+                        </div>
                     </div>
+                    <p class="text-[9px] text-slate-400">Al poner estas fechas, se crean solos los recordatorios de corte y pago — no hace falta agregarlos a mano.</p>
                 </div>
             `).join('');
+
+            // Settings views - loans editing lists
+            document.getElementById('settings-prestamos').innerHTML = state.prestamos.map(p => `
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center gap-2">
+                        <input type="text" onchange="window.updateSetting('prestamos', ${p.id}, 'emoji', this.value)" value="${p.emoji || '🏛️'}" class="w-10 p-1.5 bg-slate-100 border border-slate-200 rounded text-center text-sm outline-none flex-shrink-0">
+                        <input type="text" onchange="window.updateSetting('prestamos', ${p.id}, 'nombre', this.value)" value="${p.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none flex-1">
+                        <button onclick="window.deleteItem('prestamos', ${p.id})" class="text-slate-500 hover:text-rose-400 p-1 transition-colors">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Saldo pendiente</span>
+                            <input type="number" onchange="window.updateSetting('prestamos', ${p.id}, 'saldo', this.value)" value="${p.saldo}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-rose-400 font-black outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Cuota mensual</span>
+                            <input type="number" onchange="window.updateSetting('prestamos', ${p.id}, 'cuota', this.value)" value="${p.cuota}" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-indigo-400 font-black outline-none">
+                        </div>
+                        <div class="space-y-1 col-span-2">
+                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Día límite de pago</span>
+                            <input type="number" min="1" max="31" onchange="window.updateSetting('prestamos', ${p.id}, 'diaPago', this.value)" value="${p.diaPago || ''}" placeholder="Ej. 15" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-black outline-none">
+                        </div>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-xs text-slate-400 px-1">Aún no has agregado préstamos.</p>';
 
             // Settings views - category editing lists
             document.getElementById('settings-categories').innerHTML = state.gastosFijos.map(c => `
