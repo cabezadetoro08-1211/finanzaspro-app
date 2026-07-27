@@ -1374,7 +1374,8 @@
                     resource: { valueInputOption: 'USER_ENTERED', data }
                 });
             } catch (err) {
-                window.showAlert("Error al guardar", "No se pudo guardar en el Sheet. Revisa tu conexión e intenta de nuevo.", "fa-solid fa-triangle-exclamation text-rose-500");
+                const detalle = err && err.result && err.result.error ? err.result.error.message : (err && err.message ? err.message : 'Error desconocido');
+                window.showAlert("Error al guardar", "No se pudo guardar en el Sheet. Revisa que existan las pestañas Tarjetas, Ingresos, Recordatorios, Categorias, Prestamos y CuentasAhorro con sus columnas correctas. Detalle: " + detalle, "fa-solid fa-triangle-exclamation text-rose-500");
             }
         };
 
