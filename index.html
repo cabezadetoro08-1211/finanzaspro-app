@@ -1330,7 +1330,7 @@
 
         window.loadFromSheets = async () => {
             try {
-                const ranges = ['Tarjetas!A1:H100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:I100', 'Prestamos!A1:F100', 'CuentasAhorro!A1:C100'];
+                const ranges = ['Tarjetas!A1:H100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:I100', 'Prestamos!A1:F100', 'CuentasAhorro!A1:D100'];
                 const res = await gapi.client.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
                     ranges
@@ -1367,7 +1367,7 @@
                     { range: 'Recordatorios!A1:F100', values: objectsToRows(state.recordatorios.filter(r => !r.auto), ['id','tipo','nombre','dia','monto','tarjetaId']) },
                     { range: 'Categorias!A1:I100', values: objectsToRows(state.gastosFijos, ['id','nombre','tope','gastado','fuenteTipo','fuenteId','emoji','color','diaLimite']) },
                     { range: 'Prestamos!A1:F100', values: objectsToRows(state.prestamos, ['id','nombre','saldo','cuota','diaPago','emoji']) },
-                    { range: 'CuentasAhorro!A1:C100', values: objectsToRows(state.cuentasAhorro, ['id','nombre','saldo','emoji']) }
+                    { range: 'CuentasAhorro!A1:D100', values: objectsToRows(state.cuentasAhorro, ['id','nombre','saldo','emoji']) }
                 ];
                 await gapi.client.sheets.spreadsheets.values.batchUpdate({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
