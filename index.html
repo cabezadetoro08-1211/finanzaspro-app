@@ -132,9 +132,12 @@
                         <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
                             <i class="fa-solid fa-sack-dollar text-sm"></i>
                         </div>
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Salario</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Salario disponible</span>
                     </div>
-                    <span id="salario-total" class="text-lg font-black text-slate-900">$0.00</span>
+                    <div class="text-right">
+                        <span id="salario-total" class="text-lg font-black text-slate-900 block">$0.00</span>
+                        <span id="salario-destinado" class="text-[9px] text-slate-400">de $0.00</span>
+                    </div>
                 </div>
 
                 <!-- Active Cards section -->
@@ -170,6 +173,17 @@
                     </div>
                 </div>
 
+                <!-- Efectivo (solo exhibición) -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Efectivo</h3>
+                        <span class="text-[10px] text-slate-500">Saldo</span>
+                    </div>
+                    <div id="efectivo-list" class="space-y-2.5">
+                        <!-- Dynamic list generated in JS -->
+                    </div>
+                </div>
+
                 <!-- Ingresos Extra (solo exhibición) -->
                 <div class="space-y-3">
                     <div class="flex justify-between items-center px-1">
@@ -192,10 +206,6 @@
                         </div>
                     </div>
                     <span id="ahorro-total" class="text-lg font-black text-emerald-600">$0.00</span>
-                </div>
-                <div class="flex justify-between items-center px-1">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ahorro acumulado (ciclos anteriores)</span>
-                    <span id="ahorro-acumulado" class="text-sm font-black text-emerald-500">$0.00</span>
                 </div>
             </section>
 
@@ -228,7 +238,7 @@
                             <option value="gasto">💸 Registrar un Gasto (de Presupuesto)</option>
                             <option value="pago">🏦 Pago de Tarjeta</option>
                             <option value="pago_prestamo">🏛️ Pago de Préstamo</option>
-                            <option value="deposito_ahorro">🐷 Depósito a Ahorro</option>
+                            <option value="deposito_ahorro">🐷 Depósito (Ahorro o Efectivo)</option>
                         </select>
                     </div>
 
@@ -255,9 +265,9 @@
                     </div>
 
                     <div id="field-cuenta-destino" class="space-y-1 hidden">
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cuenta de Ahorro Destino</label>
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Destino del Depósito</label>
                         <select id="target-cuenta" class="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500 transition-colors">
-                            <!-- Populated with cuentasAhorro -->
+                            <!-- Populated with cuentasAhorro + efectivo -->
                         </select>
                     </div>
 
@@ -368,9 +378,10 @@
                 <!-- Reminders Section -->
                 <div class="space-y-4">
                     <div class="flex justify-between items-center px-1">
-                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Recordatorios</h3>
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Otros Recordatorios</h3>
                         <button onclick="window.promptAddReminder()" class="text-xs font-bold text-indigo-400 hover:underline">+ Nuevo Recordatorio</button>
                     </div>
+                    <p class="text-[9px] text-slate-400 -mt-2">Para tarjetas, préstamos o presupuesto con fecha, la fecha ya se muestra sola en su propia tarjeta — aquí solo van recordatorios sueltos que no pertenecen a ninguno de esos.</p>
                     <div id="settings-reminders" class="space-y-2.5">
                         <!-- Interactive list for editing reminders -->
                     </div>
@@ -406,6 +417,17 @@
                     </div>
                     <div id="settings-cuentas-ahorro" class="space-y-2.5">
                         <!-- Interactive list for editing savings accounts -->
+                    </div>
+                </div>
+
+                <!-- Efectivo Editing Section -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Editar Efectivo</h3>
+                        <button onclick="window.promptAddEfectivo()" class="text-xs font-bold text-indigo-400 hover:underline">+ Nuevo Registro</button>
+                    </div>
+                    <div id="settings-efectivo" class="space-y-2.5">
+                        <!-- Interactive list for editing cash -->
                     </div>
                 </div>
 
@@ -532,19 +554,23 @@
             cuentasAhorro: [
                 { id: 1, nombre: "Cuenta de Ahorros", saldo: 12000, emoji: "🐷" }
             ],
+            efectivo: [
+                { id: 1, nombre: "Efectivo", saldo: 2000, emoji: "💵" }
+            ],
             cicloInicio: 25, // día del mes en que empieza tu ciclo financiero (ej. día que te pagan)
             ahorroAcumulado: 0 // se va sumando cada vez que cierras un ciclo
         };
 
-        // Devuelve todas las "fuentes de pago" posibles: tarjetas + fuentes de ingreso + cuentas de ahorro, en un solo listado
+        // Devuelve todas las "fuentes de pago" posibles: tarjetas + fuentes de ingreso + cuentas de ahorro + efectivo, en un solo listado
         function getFuentesPago() {
             return [
                 ...state.tarjetas.map(t => ({ tipo: 'tarjeta', id: t.id, nombre: t.nombre, emoji: t.emoji || '💳' })),
                 ...state.fuentesIngreso.map(i => ({ tipo: 'ingreso', id: i.id, nombre: i.nombre + (i.tipo === 'salario' ? ' (Salario)' : ' (Extra)'), emoji: i.emoji || '💰' })),
-                ...state.cuentasAhorro.map(a => ({ tipo: 'ahorro', id: a.id, nombre: a.nombre + ' (Ahorro)', emoji: a.emoji || '🐷' }))
+                ...state.cuentasAhorro.map(a => ({ tipo: 'ahorro', id: a.id, nombre: a.nombre + ' (Ahorro)', emoji: a.emoji || '🐷' })),
+                ...state.efectivo.map(e => ({ tipo: 'efectivo', id: e.id, nombre: e.nombre + ' (Efectivo)', emoji: e.emoji || '💵' }))
             ];
         }
-        // Registra un gasto contra la fuente correcta (resta disponible de tarjeta, suma "gastado" a un ingreso, o resta saldo de una cuenta de ahorro)
+        // Registra un gasto contra la fuente correcta (resta disponible de tarjeta, suma "gastado" a un ingreso, o resta saldo de ahorro/efectivo)
         function registrarGastoEnFuente(fuenteTipo, fuenteId, monto) {
             if (fuenteTipo === 'tarjeta') {
                 const t = state.tarjetas.find(x => x.id === fuenteId);
@@ -555,6 +581,9 @@
             } else if (fuenteTipo === 'ahorro') {
                 const a = state.cuentasAhorro.find(x => x.id === fuenteId);
                 if (a) a.saldo = (a.saldo || 0) - monto;
+            } else if (fuenteTipo === 'efectivo') {
+                const e = state.efectivo.find(x => x.id === fuenteId);
+                if (e) e.saldo = (e.saldo || 0) - monto;
             }
         }
         // Etiqueta del ciclo actual, ej. "25 Jul – 24 Ago"
@@ -845,6 +874,22 @@
             });
         };
 
+        // Manage Settings - Cash (efectivo) addition
+        window.promptAddEfectivo = () => {
+            window.openPrompt("Nuevo Registro de Efectivo", [
+                { id: 'nombre', label: 'Nombre', type: 'text', placeholder: 'Ej. Efectivo, Cartera' },
+                { id: 'saldo', label: 'Monto actual en mano ($)', type: 'number', placeholder: '0.00' },
+                { id: 'emoji', label: 'Emoji Identificador', type: 'emoji-picker', value: '💵' }
+            ], (inputs) => {
+                const nombre = inputs.nombre;
+                const saldo = parseFloat(inputs.saldo) || 0;
+                if (nombre) {
+                    state.efectivo.push({ id: Date.now(), nombre, saldo, emoji: inputs.emoji || '💵' });
+                    updateUI();
+                }
+            });
+        };
+
         // Manage Settings - Categories addition
         window.promptAddCategory = () => {
             const fuentes = getFuentesPago();
@@ -1097,57 +1142,130 @@
                 if ((inputs.confirmar || '').trim().toUpperCase() !== 'SI') return;
                 const ahorroTarjetas = state.tarjetas.reduce((s, t) => { const tope = t.tope || t.limite; return s + (t.gastado <= tope ? (tope - t.gastado) : 0); }, 0);
                 const ahorroIngresos = state.fuentesIngreso.reduce((s, i) => s + ((i.gastado || 0) <= i.monto ? (i.monto - (i.gastado || 0)) : 0), 0);
-                state.ahorroAcumulado = (state.ahorroAcumulado || 0) + ahorroTarjetas + ahorroIngresos;
+                const totalAhorradoEsteCiclo = ahorroTarjetas + ahorroIngresos;
+                state.ahorroAcumulado = 0; // el balance de ciclos anteriores no se arrastra, siempre empieza en cero
                 state.tarjetas.forEach(t => t.gastado = 0);
                 state.fuentesIngreso.forEach(i => i.gastado = 0);
                 state.gastosFijos.forEach(f => { f.gastado = 0; f.desglose = []; });
                 updateUI();
-                window.showAlert("Ciclo reiniciado ✅", `Se sumaron $${(ahorroTarjetas + ahorroIngresos).toLocaleString()} a tu ahorro acumulado. Todo listo para el nuevo ciclo.`, "fa-solid fa-rotate text-emerald-500");
+                window.showAlert("Ciclo reiniciado ✅", `Ahorraste $${totalAhorradoEsteCiclo.toLocaleString()} en el ciclo que acaba de cerrar. Todo listo para el nuevo ciclo, empezando en cero.`, "fa-solid fa-rotate text-emerald-500");
             });
         };
 
         // Genera y descarga un informe de texto con el resumen completo del ciclo actual
         window.descargarInforme = () => {
             const salarioTotal = state.fuentesIngreso.filter(i => i.tipo === 'salario').reduce((s, i) => s + (i.monto || 0), 0);
-            const extra = state.fuentesIngreso.filter(i => i.tipo !== 'salario');
-            const totalExtra = extra.reduce((s, i) => s + (i.monto || 0), 0);
-            const totalIncome = salarioTotal + totalExtra;
+            const totalIncome = state.fuentesIngreso.reduce((s, i) => s + (i.monto || 0), 0);
             const ahorroTarjetas = state.tarjetas.reduce((s, t) => { const tope = t.tope || t.limite; return s + (t.gastado <= tope ? (tope - t.gastado) : 0); }, 0);
             const ahorroIngresos = state.fuentesIngreso.reduce((s, i) => s + ((i.gastado || 0) <= i.monto ? (i.monto - (i.gastado || 0)) : 0), 0);
+            const fmt = n => `$${(n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-            let lines = [];
-            lines.push('FINANZASPRO — INFORME DEL CICLO');
-            lines.push('Ciclo: ' + cicloLabel());
-            lines.push('Generado: ' + new Date().toLocaleString());
-            lines.push('');
-            lines.push('=== INGRESOS ===');
-            state.fuentesIngreso.forEach(i => lines.push(`${i.nombre} (${i.tipo === 'salario' ? 'Salario' : 'Extra'}): $${i.monto.toLocaleString()} — gastado: $${(i.gastado || 0).toLocaleString()}`));
-            lines.push(`TOTAL INGRESOS: $${totalIncome.toLocaleString()}`);
-            lines.push('');
-            lines.push('=== TARJETAS ===');
-            state.tarjetas.forEach(t => lines.push(`${t.nombre}: gastado $${(t.gastado || 0).toLocaleString()} de tope $${(t.tope || t.limite).toLocaleString()} (límite total $${t.limite.toLocaleString()})`));
-            lines.push('');
-            lines.push('=== PRÉSTAMOS ===');
-            state.prestamos.forEach(p => lines.push(`${p.nombre}: saldo pendiente $${(p.saldo || 0).toLocaleString()}, cuota $${(p.cuota || 0).toLocaleString()}`));
-            lines.push('');
-            lines.push('=== PRESUPUESTO ===');
-            state.gastosFijos.forEach(f => {
+            const seccion = (titulo, contenidoHTML) => `
+                <section style="margin-bottom:28px;">
+                    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:#4f46e5;border-bottom:2px solid #e0e7ff;padding-bottom:6px;margin-bottom:12px;">${titulo}</h2>
+                    ${contenidoHTML}
+                </section>`;
+
+            const tabla = (headers, rows) => `
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr>${headers.map(h => `<th style="text-align:left;padding:6px 8px;background:#f8fafc;color:#64748b;font-size:10px;text-transform:uppercase;">${h}</th>`).join('')}</tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+
+            const ingresosRows = state.fuentesIngreso.map(i => `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:6px 8px;">${i.emoji || ''} ${i.nombre}</td>
+                    <td style="padding:6px 8px;">${i.tipo === 'salario' ? 'Salario' : 'Extra'}</td>
+                    <td style="padding:6px 8px;text-align:right;">${fmt(i.monto)}</td>
+                    <td style="padding:6px 8px;text-align:right;color:#e11d48;">${fmt(i.gastado)}</td>
+                    <td style="padding:6px 8px;text-align:right;color:#059669;font-weight:600;">${fmt((i.monto||0) - (i.gastado||0))}</td>
+                </tr>`).join('');
+
+            const tarjetasRows = state.tarjetas.map(t => `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:6px 8px;">${t.emoji || ''} ${t.nombre}</td>
+                    <td style="padding:6px 8px;text-align:right;">${fmt(t.limite)}</td>
+                    <td style="padding:6px 8px;text-align:right;">${fmt(t.tope || t.limite)}</td>
+                    <td style="padding:6px 8px;text-align:right;${t.gastado > (t.tope||t.limite) ? 'color:#e11d48;font-weight:600;' : ''}">${fmt(t.gastado)}</td>
+                    <td style="padding:6px 8px;text-align:right;color:#059669;">${fmt(Math.max((t.limite||0)-(t.gastado||0),0))}</td>
+                </tr>`).join('');
+
+            const prestamosRows = state.prestamos.map(p => `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:6px 8px;">${p.emoji || ''} ${p.nombre}</td>
+                    <td style="padding:6px 8px;text-align:right;color:#e11d48;">${fmt(p.saldo)}</td>
+                    <td style="padding:6px 8px;text-align:right;">${fmt(p.cuota)}</td>
+                    <td style="padding:6px 8px;text-align:right;">${p.diaPago ? 'Día ' + p.diaPago : '—'}</td>
+                </tr>`).join('') || '<tr><td style="padding:6px 8px;color:#94a3b8;">Sin préstamos registrados</td></tr>';
+
+            const cuentasRows = state.cuentasAhorro.map(a => `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:6px 8px;">${a.emoji || ''} ${a.nombre}</td>
+                    <td style="padding:6px 8px;text-align:right;color:#059669;font-weight:600;">${fmt(a.saldo)}</td>
+                </tr>`).join('') || '<tr><td style="padding:6px 8px;color:#94a3b8;">Sin cuentas de ahorro registradas</td></tr>';
+
+            const efectivoRows = state.efectivo.map(e => `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:6px 8px;">${e.emoji || ''} ${e.nombre}</td>
+                    <td style="padding:6px 8px;text-align:right;color:#059669;font-weight:600;">${fmt(e.saldo)}</td>
+                </tr>`).join('') || '<tr><td style="padding:6px 8px;color:#94a3b8;">Sin efectivo registrado</td></tr>';
+
+            const presupuestoRows = state.gastosFijos.map(f => {
                 const sobre = f.gastado > f.tope;
-                lines.push(`${f.nombre}: destinado $${f.tope.toLocaleString()}, gastado $${(f.gastado || 0).toLocaleString()}${sobre ? ' [EXCEDIDO]' : ', ahorrado $' + (f.tope - f.gastado).toLocaleString()}`);
-            });
-            lines.push('');
-            lines.push('=== AHORRO ===');
-            lines.push(`Ahorro este ciclo: $${(ahorroTarjetas + ahorroIngresos).toLocaleString()}`);
-            lines.push(`Ahorro acumulado (ciclos anteriores): $${(state.ahorroAcumulado || 0).toLocaleString()}`);
-            lines.push('');
-            lines.push('=== HISTORIAL DE MOVIMIENTOS ===');
-            state.movimientos.forEach(m => lines.push(`${new Date(m.date).toLocaleDateString()} — ${m.concept} — ${m.type === 'gasto' ? '-' : '+'}$${m.amount.toLocaleString()} (${m.card})`));
+                const fuente = getFuentesPago().find(x => x.tipo === f.fuenteTipo && x.id === f.fuenteId);
+                return `
+                <tr style="border-top:1px solid #f1f5f9;${sobre ? 'background:#fff1f2;' : ''}">
+                    <td style="padding:6px 8px;">${f.emoji || ''} ${f.nombre}</td>
+                    <td style="padding:6px 8px;text-align:right;">${fmt(f.tope)}</td>
+                    <td style="padding:6px 8px;text-align:right;${sobre ? 'color:#e11d48;font-weight:600;' : ''}">${fmt(f.gastado)}</td>
+                    <td style="padding:6px 8px;text-align:right;color:${sobre ? '#e11d48' : '#059669'};font-weight:600;">${sobre ? 'Excedido' : fmt(f.tope - f.gastado)}</td>
+                    <td style="padding:6px 8px;">${fuente ? fuente.emoji + ' ' + fuente.nombre : '—'}</td>
+                </tr>`;
+            }).join('');
 
-            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const movimientosOrdenados = [...state.movimientos].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const movimientosRows = movimientosOrdenados.map(m => `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:6px 8px;white-space:nowrap;">${new Date(m.date).toLocaleDateString()}</td>
+                    <td style="padding:6px 8px;">${m.emoji || ''} ${m.concept}</td>
+                    <td style="padding:6px 8px;">${m.card}</td>
+                    <td style="padding:6px 8px;text-align:right;font-weight:600;color:${m.type === 'gasto' ? '#e11d48' : '#059669'};">${m.type === 'gasto' ? '-' : '+'}${fmt(m.amount)}</td>
+                </tr>`).join('') || '<tr><td style="padding:6px 8px;color:#94a3b8;">Sin movimientos registrados este ciclo</td></tr>';
+
+            const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Informe FinanzasPro — ${cicloLabel()}</title>
+<style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e293b;max-width:800px;margin:32px auto;padding:0 20px;}
+@media print{body{margin:0;}}</style>
+</head><body>
+    <div style="border-bottom:3px solid #4f46e5;padding-bottom:16px;margin-bottom:28px;">
+        <h1 style="font-size:22px;margin:0 0 4px;">📊 Informe Financiero — FinanzasPro</h1>
+        <p style="color:#64748b;font-size:13px;margin:0;">Ciclo: <strong>${cicloLabel()}</strong> · Generado el ${new Date().toLocaleString()}</p>
+    </div>
+
+    ${seccion('Resumen General', `
+        <table style="width:100%;font-size:13px;">
+            <tr><td style="padding:4px 0;">Ingreso total del ciclo</td><td style="text-align:right;font-weight:700;">${fmt(totalIncome)}</td></tr>
+            <tr><td style="padding:4px 0;">Ahorro este ciclo</td><td style="text-align:right;font-weight:700;color:#059669;">${fmt(ahorroTarjetas + ahorroIngresos)}</td></tr>
+        </table>
+    `)}
+
+    ${seccion('Ingresos', tabla(['Fuente','Tipo','Monto','Gastado','Disponible'], ingresosRows))}
+    ${seccion('Tarjetas de Crédito', tabla(['Tarjeta','Límite','Tope','Gastado','Crédito disp.'], tarjetasRows))}
+    ${seccion('Préstamos', tabla(['Préstamo','Saldo pendiente','Cuota','Día de pago'], prestamosRows))}
+    ${seccion('Cuentas de Ahorro', tabla(['Cuenta','Saldo'], cuentasRows))}
+    ${seccion('Efectivo', tabla(['Registro','Saldo'], efectivoRows))}
+    ${seccion('Presupuesto', tabla(['Concepto','Destinado','Gastado','Ahorrado','Pagado con'], presupuestoRows))}
+    ${seccion('Historial de Movimientos', tabla(['Fecha','Concepto','Fuente','Monto'], movimientosRows))}
+
+    <p style="color:#94a3b8;font-size:10px;text-align:center;margin-top:32px;">Generado automáticamente por FinanzasPro AI</p>
+</body></html>`;
+
+            const blob = new Blob([html], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `informe-finanzaspro-${new Date().toISOString().split('T')[0]}.txt`;
+            a.download = `informe-finanzaspro-${new Date().toISOString().split('T')[0]}.html`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -1182,7 +1300,8 @@
                     if (p) p.saldo = (p.saldo || 0) + m.amount;
                 }
                 if (m.targetCuentaId) {
-                    const a = state.cuentasAhorro.find(x => x.id === m.targetCuentaId);
+                    const listaDestino = m.targetCuentaTipo === 'efectivo' ? state.efectivo : state.cuentasAhorro;
+                    const a = listaDestino.find(x => x.id === m.targetCuentaId);
                     if (a) a.saldo = Math.max((a.saldo || 0) - m.amount, 0);
                 }
                 if (m.fuenteTipo && m.fuenteId != null) registrarGastoEnFuente(m.fuenteTipo, m.fuenteId, -m.amount);
@@ -1266,21 +1385,24 @@
                     date: fecha, card: fuente ? fuente.nombre : '—', emoji: '🏛️'
                 });
             } else if (type === 'deposito_ahorro') {
-                // Depósito a ahorro: sale de una fuente (salario/extra/tarjeta) y entra a una cuenta de ahorro
-                const targetId = parseInt(document.getElementById('target-cuenta').value);
+                // Depósito: sale de una fuente (salario/extra/tarjeta/ahorro/efectivo) y entra a una cuenta de ahorro o a efectivo
+                const targetVal = document.getElementById('target-cuenta').value;
+                const [targetTipo, targetIdRaw] = targetVal.split(':');
+                const targetId = parseInt(targetIdRaw);
                 const fuenteVal = document.getElementById('fuente-fondos').value;
                 const [fuenteTipo, fuenteIdRaw] = fuenteVal.split(':');
                 const fuenteId = parseInt(fuenteIdRaw);
-                const cuenta = state.cuentasAhorro.find(a => a.id === targetId);
-                if (!cuenta) return window.showAlert("Atención", "No has configurado ninguna cuenta de ahorro aún.", "fa-solid fa-piggy-bank text-rose-500");
+                const listaDestino = targetTipo === 'efectivo' ? state.efectivo : state.cuentasAhorro;
+                const cuenta = listaDestino.find(a => a.id === targetId);
+                if (!cuenta) return window.showAlert("Atención", "No has configurado ninguna cuenta de ahorro o efectivo aún.", "fa-solid fa-piggy-bank text-rose-500");
 
                 cuenta.saldo = (cuenta.saldo || 0) + amount;
                 registrarGastoEnFuente(fuenteTipo, fuenteId, amount);
                 const fuente = getFuentesPago().find(f => f.tipo === fuenteTipo && f.id === fuenteId);
                 state.movimientos.unshift({
-                    id: Date.now(), concept: `Depósito a ${cuenta.nombre}`, amount, type: 'pago', targetCuentaId: cuenta.id,
+                    id: Date.now(), concept: `Depósito a ${cuenta.nombre}`, amount, type: 'pago', targetCuentaId: cuenta.id, targetCuentaTipo: targetTipo,
                     fuenteTipo, fuenteId,
-                    date: fecha, card: fuente ? fuente.nombre : '—', emoji: '🐷'
+                    date: fecha, card: fuente ? fuente.nombre : '—', emoji: targetTipo === 'efectivo' ? '💵' : '🐷'
                 });
             }
 
@@ -1308,7 +1430,8 @@
                         sheetsConnected = true;
                         document.getElementById('sheets-status').innerText = 'Conectado';
                         document.getElementById('sheets-connect-btn').innerText = 'Sincronizar ahora';
-                        await window.loadFromSheets();
+                        const ok = await window.loadFromSheets();
+                        if (ok) window.showAlert("Sincronizado ✅", "Tus datos reales de Google Sheets ya están cargados en la app.", "fa-solid fa-check text-emerald-400");
                     }
                 });
                 tokenClient.requestAccessToken();
@@ -1330,12 +1453,12 @@
 
         window.loadFromSheets = async () => {
             try {
-                const ranges = ['Tarjetas!A1:H100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:I100', 'Prestamos!A1:F100', 'CuentasAhorro!A1:D100'];
+                const ranges = ['Tarjetas!A1:H100', 'Ingresos!A1:F100', 'Recordatorios!A1:F100', 'Categorias!A1:I100', 'Prestamos!A1:F100', 'CuentasAhorro!A1:D100', 'Config!A1:B2', 'Movimientos!A1:N500', 'Efectivo!A1:D100'];
                 const res = await gapi.client.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
                     ranges
                 });
-                const [tarjetasR, ingresosR, recordatoriosR, categoriasR, prestamosR, cuentasR] = res.result.valueRanges.map(v => v.values);
+                const [tarjetasR, ingresosR, recordatoriosR, categoriasR, prestamosR, cuentasR, configR, movimientosR, efectivoR] = res.result.valueRanges.map(v => v.values);
 
                 state.tarjetas = rowsToObjects(tarjetasR, [{name:'id',num:true},{name:'nombre'},{name:'limite',num:true},{name:'tope',num:true},{name:'gastado',num:true},{name:'emoji'},{name:'diaCorte',num:true,nullable:true},{name:'diaPago',num:true,nullable:true}]);
                 state.fuentesIngreso = rowsToObjects(ingresosR, [{name:'id',num:true},{name:'nombre'},{name:'monto',num:true},{name:'tipo'},{name:'emoji'},{name:'gastado',num:true}]);
@@ -1344,11 +1467,22 @@
                 state.gastosFijos.forEach(f => { if (!f.desglose) f.desglose = []; });
                 state.prestamos = rowsToObjects(prestamosR, [{name:'id',num:true},{name:'nombre'},{name:'saldo',num:true},{name:'cuota',num:true},{name:'diaPago',num:true,nullable:true},{name:'emoji'}]);
                 state.cuentasAhorro = rowsToObjects(cuentasR, [{name:'id',num:true},{name:'nombre'},{name:'saldo',num:true},{name:'emoji'}]);
+                state.efectivo = rowsToObjects(efectivoR, [{name:'id',num:true},{name:'nombre'},{name:'saldo',num:true},{name:'emoji'}]);
+                state.movimientos = rowsToObjects(movimientosR, [
+                    {name:'id',num:true},{name:'concept'},{name:'amount',num:true},{name:'type'},{name:'date'},{name:'card'},{name:'emoji'},
+                    {name:'catId',nullable:true},{name:'fuenteTipo',nullable:true},{name:'fuenteId',num:true,nullable:true},
+                    {name:'targetCardId',num:true,nullable:true},{name:'targetPrestamoId',num:true,nullable:true},{name:'targetCuentaId',num:true,nullable:true},{name:'targetCuentaTipo',nullable:true}
+                ]).sort((a, b) => new Date(b.date) - new Date(a.date));
+                if (configR && configR[1]) {
+                    state.cicloInicio = parseInt(configR[1][0]) || 25;
+                    state.ahorroAcumulado = parseFloat(configR[1][1]) || 0;
+                }
 
                 updateUI();
-                window.showAlert("Sincronizado ✅", "Tus datos reales de Google Sheets ya están cargados en la app.", "fa-solid fa-check text-emerald-400");
+                return true;
             } catch (err) {
-                window.showAlert("Error al leer el Sheet", "Revisa que las pestañas se llamen exactamente: Tarjetas, Ingresos, Recordatorios, Categorias (sin tilde), Prestamos, CuentasAhorro, y que tengan las columnas correctas. Detalle: " + (err.result ? err.result.error.message : err.message), "fa-solid fa-triangle-exclamation text-rose-500");
+                window.showAlert("Error al leer el Sheet", "Revisa que las pestañas se llamen exactamente: Tarjetas, Ingresos, Recordatorios, Categorias (sin tilde), Prestamos, CuentasAhorro, Config, Movimientos, Efectivo, y que tengan las columnas correctas. Detalle: " + (err.result ? err.result.error.message : err.message), "fa-solid fa-triangle-exclamation text-rose-500");
+                return false;
             }
         };
 
@@ -1358,7 +1492,7 @@
             return [header, ...body];
         }
 
-        window.saveToSheets = async () => {
+        window.saveToSheets = async (isRetry) => {
             if (!sheetsConnected) return;
             try {
                 const data = [
@@ -1367,14 +1501,38 @@
                     { range: 'Recordatorios!A1:F100', values: objectsToRows(state.recordatorios.filter(r => !r.auto), ['id','tipo','nombre','dia','monto','tarjetaId']) },
                     { range: 'Categorias!A1:I100', values: objectsToRows(state.gastosFijos, ['id','nombre','tope','gastado','fuenteTipo','fuenteId','emoji','color','diaLimite']) },
                     { range: 'Prestamos!A1:F100', values: objectsToRows(state.prestamos, ['id','nombre','saldo','cuota','diaPago','emoji']) },
-                    { range: 'CuentasAhorro!A1:D100', values: objectsToRows(state.cuentasAhorro, ['id','nombre','saldo','emoji']) }
+                    { range: 'CuentasAhorro!A1:D100', values: objectsToRows(state.cuentasAhorro, ['id','nombre','saldo','emoji']) },
+                    { range: 'Efectivo!A1:D100', values: objectsToRows(state.efectivo, ['id','nombre','saldo','emoji']) },
+                    { range: 'Config!A1:B2', values: [['cicloInicio','ahorroAcumulado'], [state.cicloInicio || 25, state.ahorroAcumulado || 0]] },
+                    { range: 'Movimientos!A1:N500', values: objectsToRows(state.movimientos.slice(0, 494), ['id','concept','amount','type','date','card','emoji','catId','fuenteTipo','fuenteId','targetCardId','targetPrestamoId','targetCuentaId','targetCuentaTipo']) }
                 ];
                 await gapi.client.sheets.spreadsheets.values.batchUpdate({
                     spreadsheetId: SHEETS_CONFIG.SHEET_ID,
                     resource: { valueInputOption: 'USER_ENTERED', data }
                 });
             } catch (err) {
+                const code = err && err.status ? err.status : (err && err.result && err.result.error ? err.result.error.code : null);
+                // Si la sesión con Google expiró (401), intenta renovarla sola y reintenta guardar una vez, sin molestar al usuario
+                if (code === 401 && !isRetry && tokenClient) {
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const prevCallback = tokenClient.callback;
+                            tokenClient.callback = (resp) => {
+                                tokenClient.callback = prevCallback;
+                                resp.error ? reject(resp) : resolve(resp);
+                            };
+                            tokenClient.requestAccessToken({ prompt: '' });
+                        });
+                        return window.saveToSheets(true);
+                    } catch (e) {
+                        const statusEl = document.getElementById('sheets-status');
+                        if (statusEl) statusEl.innerText = 'Sesión expirada — toca Conectar de nuevo';
+                        return;
+                    }
+                }
                 const detalle = err && err.result && err.result.error ? err.result.error.message : (err && err.message ? err.message : 'Error desconocido');
+                const statusEl = document.getElementById('sheets-status');
+                if (statusEl) statusEl.innerText = 'Error al guardar — revisa el Sheet';
                 window.showAlert("Error al guardar", "No se pudo guardar en el Sheet. Revisa que existan las pestañas Tarjetas, Ingresos, Recordatorios, Categorias, Prestamos y CuentasAhorro con sus columnas correctas. Detalle: " + detalle, "fa-solid fa-triangle-exclamation text-rose-500");
             }
         };
@@ -1394,7 +1552,8 @@
             const totalExtraDisponible = Math.max(totalExtra - totalExtraGastado, 0);
             const totalIncome = state.fuentesIngreso.reduce((s, i) => s + (i.monto || 0), 0);
             const totalAhorroCuentas = state.cuentasAhorro.reduce((s, a) => s + (a.saldo || 0), 0);
-            const saldoTotal = salarioDisponible + totalExtraDisponible + totalDisponibleTarjetas + totalAhorroCuentas;
+            const totalEfectivo = state.efectivo.reduce((s, e) => s + (e.saldo || 0), 0);
+            const saldoTotal = salarioDisponible + totalExtraDisponible + totalDisponibleTarjetas + totalAhorroCuentas + totalEfectivo;
 
             // Ahorro automático: lo no gastado del tope de cada tarjeta + lo no gastado de cada categoría del presupuesto
             // Ahorro = lo que no gastaste del tope de cada tarjeta + lo que no gastaste de tu salario/ingresos extra
@@ -1404,8 +1563,6 @@
             const ahorroIngresos = state.fuentesIngreso.reduce((s, i) => s + ((i.gastado || 0) <= i.monto ? (i.monto - (i.gastado || 0)) : 0), 0);
             const ahorroTotal = ahorroTarjetas + ahorroIngresos;
             document.getElementById('ahorro-total').innerText = `$${ahorroTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const ahorroAcEl = document.getElementById('ahorro-acumulado');
-            if (ahorroAcEl) ahorroAcEl.innerText = `$${(state.ahorroAcumulado || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             const cicloEl = document.getElementById('ciclo-label');
             if (cicloEl) cicloEl.innerText = cicloLabel();
             const cicloAjustesEl = document.getElementById('ciclo-label-ajustes');
@@ -1414,7 +1571,8 @@
             if (cicloInput && document.activeElement !== cicloInput) cicloInput.value = state.cicloInicio || 25;
 
             document.getElementById('total-debt').innerText = `$${saldoTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('salario-total').innerText = `$${salarioTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('salario-total').innerText = `$${salarioDisponible.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('salario-destinado').innerText = `de $${salarioTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('total-income-display').innerText = `$${totalIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
             // Ingresos Extra (solo exhibición en Cartera)
@@ -1488,6 +1646,14 @@
                 </div>
             `).join('') || '<p class="text-xs text-slate-400 px-1">No tienes cuentas de ahorro registradas.</p>';
 
+            // Render Cash (solo exhibición en Cartera)
+            document.getElementById('efectivo-list').innerHTML = state.efectivo.map(e => `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">${e.emoji || '💵'} ${e.nombre}</span>
+                    <span class="text-lg font-black text-emerald-500">$${(e.saldo || 0).toLocaleString()}</span>
+                </div>
+            `).join('') || '<p class="text-xs text-slate-400 px-1">No tienes efectivo registrado.</p>';
+
             // Render Incomes tab list
             document.getElementById('ingresos-list').innerHTML = state.fuentesIngreso.map(i => `
                 <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-3 transition-all hover:border-slate-300">
@@ -1509,7 +1675,10 @@
             document.getElementById('concept-select').innerHTML = state.gastosFijos.map(f => `<option value="${f.id}">${f.emoji} ${f.nombre}</option>`).join('');
             document.getElementById('target-card').innerHTML = state.tarjetas.map(t => `<option value="${t.id}">${t.emoji || '💳'} ${t.nombre}</option>`).join('');
             document.getElementById('target-prestamo').innerHTML = state.prestamos.map(p => `<option value="${p.id}">${p.emoji || '🏛️'} ${p.nombre}</option>`).join('');
-            document.getElementById('target-cuenta').innerHTML = state.cuentasAhorro.map(a => `<option value="${a.id}">${a.emoji || '🐷'} ${a.nombre}</option>`).join('');
+            document.getElementById('target-cuenta').innerHTML = [
+                ...state.cuentasAhorro.map(a => `<option value="ahorro:${a.id}">${a.emoji || '🐷'} ${a.nombre} (Ahorro)</option>`),
+                ...state.efectivo.map(e => `<option value="efectivo:${e.id}">${e.emoji || '💵'} ${e.nombre} (Efectivo)</option>`)
+            ].join('');
             document.getElementById('fuente-fondos').innerHTML = getFuentesPago().map(f => `<option value="${f.tipo}:${f.id}">${f.emoji} ${f.nombre}</option>`).join('');
             // Muestra de dónde se va a descontar el gasto seleccionado
             const catSel = document.getElementById('concept-select');
@@ -1587,7 +1756,7 @@
             const dueSoon = sortedReminders.some(r => daysUntil(r.dia) <= 3);
             document.getElementById('reminder-badge').classList.toggle('hidden', !dueSoon);
 
-            document.getElementById('settings-reminders').innerHTML = sortedReminders.map(r => `
+            document.getElementById('settings-reminders').innerHTML = sortedReminders.filter(r => !r.auto).map(r => `
                 <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                     <div class="flex justify-between items-start">
                         <div class="flex-1 space-y-1">
@@ -1625,7 +1794,7 @@
                         <i class="fa-solid fa-calendar-plus"></i> Descargar recordatorio (.ics)
                     </button>
                 </div>
-            `).join('') || '<p class="text-xs text-slate-500 px-1">Aún no has agregado recordatorios.</p>';
+            `).join('') || '<p class="text-xs text-slate-500 px-1">No tienes recordatorios sueltos. Los de tarjetas, préstamos y presupuesto se ven en su propia tarjeta.</p>';
 
             // Settings views - cards edition lists
             document.getElementById('settings-cards').innerHTML = state.tarjetas.map(t => `
@@ -1703,6 +1872,23 @@
                 </div>
             `).join('') || '<p class="text-xs text-slate-400 px-1">Aún no has agregado cuentas de ahorro.</p>';
 
+            // Settings views - cash editing lists
+            document.getElementById('settings-efectivo').innerHTML = state.efectivo.map(e => `
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-2">
+                    <input type="text" onchange="window.updateSetting('efectivo', ${e.id}, 'emoji', this.value)" value="${e.emoji || '💵'}" class="w-10 p-1.5 bg-slate-100 border border-slate-200 rounded text-center text-sm outline-none flex-shrink-0">
+                    <div class="flex-1">
+                        <input type="text" onchange="window.updateSetting('efectivo', ${e.id}, 'nombre', this.value)" value="${e.nombre}" class="bg-transparent font-bold text-sm text-slate-800 outline-none w-full">
+                        <div class="flex items-center gap-1.5 mt-1">
+                            <span class="text-xs text-slate-500 font-bold">$</span>
+                            <input type="number" onchange="window.updateSetting('efectivo', ${e.id}, 'saldo', this.value)" value="${e.saldo}" class="bg-transparent text-xs text-emerald-500 font-black outline-none w-24">
+                        </div>
+                    </div>
+                    <button onclick="window.deleteItem('efectivo', ${e.id})" class="text-slate-500 hover:text-rose-400 p-2 transition-colors">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+            `).join('') || '<p class="text-xs text-slate-400 px-1">Aún no has agregado efectivo.</p>';
+
             // Settings views - category editing lists
             document.getElementById('settings-categories').innerHTML = state.gastosFijos.map(c => `
                 <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
@@ -1736,11 +1922,28 @@
             `).join('');
         }
 
-        // Guarda en Google Sheets cada vez que la UI se refresca (si ya está conectado)
+        // Guarda en Google Sheets después de que dejes de hacer cambios por 1.5 segundos
+        // (evita mandar una petición a Google por cada tecla/click, lo cual chocaba con el límite de peticiones)
+        let saveDebounceTimer = null;
+        let saveInFlight = false;
+        function scheduleSaveToSheets() {
+            if (!sheetsConnected) return;
+            const statusEl = document.getElementById('sheets-status');
+            if (statusEl) statusEl.innerText = 'Guardando cambios...';
+            clearTimeout(saveDebounceTimer);
+            saveDebounceTimer = setTimeout(async () => {
+                if (saveInFlight) { scheduleSaveToSheets(); return; } // si ya hay un guardado en curso, reintenta después
+                saveInFlight = true;
+                await window.saveToSheets();
+                saveInFlight = false;
+                if (statusEl) statusEl.innerText = 'Conectado — guardado ✓';
+            }, 1500);
+        }
+
         const originalUpdateUI = updateUI;
         updateUI = function() {
             originalUpdateUI();
-            if (sheetsConnected) window.saveToSheets();
+            scheduleSaveToSheets();
         };
         window.updateUI = updateUI;
 
@@ -1758,6 +1961,41 @@
                 setTimeout(() => splash.remove(), 500);
             }
         }, 1200);
+
+        // Al abrir la app, intenta cargar tus datos reales de Google Sheets automáticamente,
+        // sin pedirte que toques "Conectar" cada vez (silencioso: si no funciona, se queda como estaba).
+        window.autoConnectSheets = () => {
+            let attempts = 0;
+            const tryInit = () => {
+                attempts++;
+                if (!window.gapi || !window.google || !window.google.accounts) {
+                    if (attempts < 20) return setTimeout(tryInit, 300);
+                    return;
+                }
+                gapi.load('client', async () => {
+                    try {
+                        await gapi.client.init({ discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+                        tokenClient = google.accounts.oauth2.initTokenClient({
+                            client_id: SHEETS_CONFIG.CLIENT_ID,
+                            scope: SHEETS_CONFIG.SCOPES,
+                            callback: async (resp) => {
+                                if (resp.error) return; // no había sesión previa — el usuario conecta manualmente como siempre
+                                sheetsConnected = true;
+                                const btn = document.getElementById('sheets-connect-btn');
+                                const statusEl = document.getElementById('sheets-status');
+                                if (statusEl) statusEl.innerText = 'Conectado';
+                                if (btn) btn.innerText = 'Sincronizar ahora';
+                                await window.loadFromSheets();
+                            }
+                        });
+                        tokenClient.requestAccessToken({ prompt: '' });
+                    } catch (e) { /* silencioso */ }
+                });
+            };
+            tryInit();
+        };
+        window.autoConnectSheets();
     </script>
 </body>
+
 </html>
